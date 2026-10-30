@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ROS 2
+build/
+install/
+log/
+
+# Archivos temporales
+*.tmp
+*.swp
+*.bak
+*~
+
+# Visual Studio Code
+.vscode/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Variables privadas
+.env
+.env.*
+!.env.example
+
+# Credenciales
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Respaldos
+backups/

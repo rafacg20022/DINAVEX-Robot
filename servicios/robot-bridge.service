@@ -1,0 +1,17 @@
+[Unit]
+Description=DINAVEX - ROS 2 WebSocket
+After=network.target
+
+[Service]
+Type=simple
+User=robot
+
+WorkingDirectory=/home/robot/DINAVEX/ros2
+
+ExecStart=/bin/bash -c 'source /opt/ros/jazzy/setup.bash && exec ros2 launch rosbridge_server rosbridge_websocket_launch.xml port:=9090 address:=192.168.50.1'
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
