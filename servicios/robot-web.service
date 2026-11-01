@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=robot
 
-WorkingDirectory=/home/robot/DINAVEX/web
+WorkingDirectory=/home/robot/DINAVEX/web/dist
 
 ExecStart=/usr/bin/python3 -m http.server 8000 --bind 192.168.50.1
 

@@ -5,8 +5,11 @@ import os
 import serial
 import rclpy
 
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from std_msgs.msg import String
+
+import protocolo
 
 
 class ReceptorSerial(Node):
@@ -19,9 +22,18 @@ class ReceptorSerial(Node):
         # CONFIGURACION ROS 2
         # ==========================================
 
+        # Datos del STM32 hacia la interfaz
         self.publisher = self.create_publisher(
             String,
             '/datos_stm32',
+            10
+        )
+
+        # Comandos de la interfaz hacia el STM32
+        self.subscription = self.create_subscription(
+            String,
+            '/comandos_stm32',
+            self.recibir_comando,
             10
         )
 
@@ -30,6 +42,9 @@ class ReceptorSerial(Node):
         # ==========================================
 
         self.baudrate = 115200
+
+        # Formato de los mensajes: "json" o "texto" (ver protocolo.py)
+        self.formato = "json"
 
         self.puerto = None
         self.ruta_puerto = None
@@ -164,11 +179,13 @@ class ReceptorSerial(Node):
 
         try:
 
+            # write_timeout de 0.1 s: si el STM32 deja de leer,
+            # el envío de un comando no se queda trabado
             self.puerto = serial.Serial(
                 port=dispositivo,
                 baudrate=self.baudrate,
                 timeout=0,
-                write_timeout=0
+                write_timeout=0.1
             )
 
             self.ruta_puerto = dispositivo
@@ -290,32 +307,29 @@ class ReceptorSerial(Node):
                     if not texto:
                         continue
 
-                    # Mostrar mensaje recibido
+                    # Mostrar mensaje recibido. Va en debug porque
+                    # 20 mensajes por segundo llenan el log de la SD.
+                    # Para verlos: --ros-args --log-level debug
 
-                    self.get_logger().info(
+                    self.get_logger().debug(
                         f"RX [{self.tipo_dispositivo}] "
                         f"[{self.ruta_puerto}]: {texto}"
                     )
 
-                    # Validar JSON
+                    # Revisar que vengan todos los datos (ver protocolo.py)
                     try:
 
-                        datos_json = json.loads(texto)
+                        datos_stm32 = protocolo.leer_datos(
+                            texto,
+                            self.formato
+                        )
 
-                        if not isinstance(
-                            datos_json, dict
-                        ):
+                    except ValueError as error:
 
-                            self.get_logger().warning(
-                                "JSON no es un objeto."
-                            )
-
-                            continue
-
-                    except json.JSONDecodeError:
-
+                        # Máximo un aviso cada 2 segundos
                         self.get_logger().warning(
-                            f"JSON invalido: {texto}"
+                            f"Línea descartada ({error}): {texto[:80]}",
+                            throttle_duration_sec=2.0
                         )
 
                         continue
@@ -327,7 +341,7 @@ class ReceptorSerial(Node):
                     mensaje = String()
 
                     mensaje.data = json.dumps(
-                        datos_json
+                        datos_stm32
                     )
 
                     self.publisher.publish(mensaje)
@@ -350,7 +364,7 @@ class ReceptorSerial(Node):
                 if tiempo > self.timeout_datos:
 
                     self.get_logger().warning(
-                        "Sin datos JSON validos "
+                        "Sin datos validos "
                         "durante 5 segundos."
                     )
 
@@ -360,6 +374,64 @@ class ReceptorSerial(Node):
 
             self.get_logger().error(
                 f"Error serial: {error}"
+            )
+
+            self.desconectar()
+
+    # ==============================================
+    # ENVIAR COMANDOS AL STM32
+    # ==============================================
+
+    def recibir_comando(self, msg):
+
+        # La interfaz manda por ejemplo: {"cmd": "paro"}
+        try:
+
+            comando = json.loads(msg.data)
+
+            linea = protocolo.armar_comando(
+                comando.get("cmd"),
+                self.formato,
+                comando
+            )
+
+        except (ValueError, AttributeError) as error:
+
+            self.get_logger().warning(
+                f"Comando inválido ({error}): {msg.data}",
+                throttle_duration_sec=2.0
+            )
+
+            return
+
+        if self.puerto is None:
+
+            self.get_logger().warning(
+                "No se envió el comando: STM32 desconectado",
+                throttle_duration_sec=2.0
+            )
+
+            return
+
+        try:
+
+            self.puerto.write(linea)
+
+            self.get_logger().debug(
+                f"TX [{self.ruta_puerto}]: {linea}"
+            )
+
+        except serial.SerialTimeoutException:
+
+            self.get_logger().warning(
+                "No se envió el comando: el STM32 no está leyendo",
+                throttle_duration_sec=2.0
+            )
+
+        except (serial.SerialException, OSError) as error:
+
+            self.get_logger().error(
+                f"Error serial al enviar: {error}"
             )
 
             self.desconectar()
@@ -395,7 +467,8 @@ def main():
 
         rclpy.spin(nodo)
 
-    except KeyboardInterrupt:
+    # Ctrl+C o systemctl stop
+    except (KeyboardInterrupt, ExternalShutdownException):
 
         pass
 
@@ -403,7 +476,7 @@ def main():
 
         nodo.destroy_node()
 
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == '__main__':
