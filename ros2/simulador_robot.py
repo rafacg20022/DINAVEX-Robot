@@ -176,8 +176,7 @@ class SimuladorRobot(Node):
             "pi_kp": self.ganancias["pi_kp"],
             "pi_ki": self.ganancias["pi_ki"],
             "estado": self.estado,
-            "bat_24v": round(self.bateria, 2),
-            "bat_5v": round(5.02 + random.gauss(0, 0.01), 2)
+            "bat_24v": round(self.bateria, 2)
         }
 
         # Crear mensaje ROS 2

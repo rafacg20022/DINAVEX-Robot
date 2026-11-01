@@ -18,7 +18,6 @@ export const DATOS_MONITOR = [
   { campo: "par_izq", etiqueta: "Par izquierdo", unidad: "N·m", decimales: 2 },
   { campo: "par_der", etiqueta: "Par derecho", unidad: "N·m", decimales: 2 },
   { campo: "bat_24v", etiqueta: "Batería 24 V", unidad: "V", decimales: 1 },
-  { campo: "bat_5v", etiqueta: "Batería 5 V", unidad: "V", decimales: 2 },
 ];
 
 // Ganancias de los dos controladores (página Control)

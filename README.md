@@ -54,7 +54,7 @@ El control (PD de inclinación y PI de velocidad) corre en el STM32, que equilib
 Conexión serial a 115200 baudios con mensajes JSON terminados en salto de línea. El STM32 manda 20 veces por segundo:
 
 ```json
-{"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10,"bat_5v":5.02}
+{"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10}
 ```
 
 Y recibe comandos como `{"cmd":"paro"}`, `{"cmd":"arranque"}` o `{"cmd":"ganancias","pd_kp":32.0,"pd_kd":1.6,"pi_kp":0.5,"pi_ki":0.05}`.

@@ -14,10 +14,10 @@
 # --------------------------------------------------------------
 #
 # json:
-# {"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10,"bat_5v":5.02}
+# {"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10}
 #
 # texto (mismos datos en el mismo orden):
-# $TEL,-1.25,1.25,42.0,43.0,0.12,0.11,32.000,1.600,0.500,0.050,1,24.10,5.02
+# $TEL,-1.25,1.25,42.0,43.0,0.12,0.11,32.000,1.600,0.500,0.050,1,24.10
 #
 #   inclinacion      grados (positivo = hacia adelante)
 #   error            grados (setpoint - inclinación, del controlador PD)
@@ -26,7 +26,7 @@
 #   pd_kp, pd_kd     ganancias del PD que está usando el STM32
 #   pi_kp, pi_ki     ganancias del PI que está usando el STM32
 #   estado           1 = encendido, 0 = apagado
-#   bat_24v, bat_5v  voltaje de las baterías
+#   bat_24v          voltaje de la batería de 24 V
 #
 # - Las ganancias se mandan con 3 decimales (%.3f) para que la interfaz
 #   pueda confirmar que se aplicaron.
@@ -37,9 +37,9 @@
 #
 #   printf("{\"inclinacion\":%.2f,\"error\":%.2f,\"vel_izq\":%.1f,\"vel_der\":%.1f,"
 #          "\"par_izq\":%.3f,\"par_der\":%.3f,\"pd_kp\":%.3f,\"pd_kd\":%.3f,"
-#          "\"pi_kp\":%.3f,\"pi_ki\":%.3f,\"estado\":%d,\"bat_24v\":%.2f,\"bat_5v\":%.2f}\n",
+#          "\"pi_kp\":%.3f,\"pi_ki\":%.3f,\"estado\":%d,\"bat_24v\":%.2f}\n",
 #          inclinacion, error, vel_izq, vel_der, par_izq, par_der,
-#          pd_kp, pd_kd, pi_kp, pi_ki, estado, bat_24v, bat_5v);
+#          pd_kp, pd_kd, pi_kp, pi_ki, estado, bat_24v);
 #
 # --------------------------------------------------------------
 # COMANDOS QUE RECIBE EL STM32
@@ -110,7 +110,7 @@ CAMPOS = [
     "par_izq", "par_der",
     "pd_kp", "pd_kd", "pi_kp", "pi_ki",
     "estado",
-    "bat_24v", "bat_5v",
+    "bat_24v",
 ]
 
 GANANCIAS = ["pd_kp", "pd_kd", "pi_kp", "pi_ki"]
