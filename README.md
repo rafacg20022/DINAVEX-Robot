@@ -74,6 +74,8 @@ La dirección de acceso es: `http://192.168.50.1:8000`
 
 Tiene tres páginas: Monitor, Control y Gráficas. El botón de PARO está siempre visible, pero depende del Wi-Fi, por lo que no sustituye a un paro de emergencia físico.
 
+Abajo del menú está el botón para apagar la Raspberry Pi. Solo funciona con el robot en paro.
+
 ## Servicios
 
 | Servicio | Función |
@@ -89,6 +91,22 @@ sudo cp servicios/*.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl restart robot-serial robot-bridge robot-web
 ```
+
+### Permiso para apagar desde la interfaz
+
+El servicio corre como el usuario `robot`, que no puede apagar la Raspberry Pi. Se le da permiso solo para ese comando (una sola vez):
+
+```bash
+sudo visudo -f /etc/sudoers.d/dinavex
+```
+
+Y se escribe esta línea:
+
+```
+robot ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff
+```
+
+Para volver a encenderla hay que desconectar y conectar la alimentación.
 
 ## Probar sin el robot
 

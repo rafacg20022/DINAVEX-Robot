@@ -9,8 +9,33 @@ body {
 /* Menú lateral: en la computadora se queda fijo al bajar la página */
 .menu-lateral {
   height: 100vh;
+  height: 100dvh; /* en el celular no cuenta la barra del navegador */
   position: sticky !important;
   top: 0;
+}
+
+/* Para que el botón de apagar quede hasta abajo del menú */
+.menu-lateral .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}
+
+.apagar-pi {
+  margin-top: auto;
+  padding: 16px;
+}
+
+/* antd pinta el botón deshabilitado para fondo blanco; aquí el fondo es oscuro */
+.apagar-pi .ant-btn:disabled {
+  color: rgba(255, 255, 255, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.apagar-pi .aviso {
+  color: #aab8d4;
+  font-size: 12px;
+  margin-top: 6px;
+  text-align: center;
 }
 
 .marca {

@@ -2,6 +2,7 @@ import glob
 import json
 import time
 import os
+import subprocess
 import serial
 import rclpy
 
@@ -59,6 +60,9 @@ class ReceptorSerial(Node):
         # Tiempo máximo sin recibir datos válidos
         self.timeout_datos = 5.0
         self.ultimo_dato = None
+
+        # Último estado que mandó el STM32 (1 = encendido, 0 = apagado)
+        self.estado_stm32 = None
 
         # Temporizador de lectura: 100 Hz
         self.timer = self.create_timer(
@@ -244,6 +248,7 @@ class ReceptorSerial(Node):
         self.ruta_puerto = None
         self.tipo_dispositivo = None
         self.ultimo_dato = None
+        self.estado_stm32 = None
 
         self.buffer.clear()
 
@@ -350,6 +355,8 @@ class ReceptorSerial(Node):
                         time.monotonic()
                     )
 
+                    self.estado_stm32 = datos_stm32["estado"]
+
             # ======================================
             # VERIFICAR TIEMPO SIN DATOS
             # ======================================
@@ -388,6 +395,11 @@ class ReceptorSerial(Node):
         try:
 
             comando = json.loads(msg.data)
+
+            # Este comando es para la Raspberry, no para el STM32
+            if comando.get("cmd") == "apagar_pi":
+                self.apagar_pi()
+                return
 
             linea = protocolo.armar_comando(
                 comando.get("cmd"),
@@ -435,6 +447,38 @@ class ReceptorSerial(Node):
             )
 
             self.desconectar()
+
+    # ==============================================
+    # APAGAR LA RASPBERRY PI
+    # ==============================================
+
+    def apagar_pi(self):
+
+        # Con el robot encendido no se apaga: primero hay que dar PARO
+        if self.estado_stm32 == 1:
+
+            self.get_logger().warning(
+                "No se apagó la Raspberry: el robot sigue encendido"
+            )
+
+            return
+
+        self.get_logger().warning(
+            "Apagando la Raspberry Pi..."
+        )
+
+        # -n: si falta el permiso en sudoers marca error
+        # en lugar de quedarse esperando la contraseña
+        resultado = subprocess.run(
+            ["sudo", "-n", "/usr/bin/systemctl", "poweroff"]
+        )
+
+        if resultado.returncode != 0:
+
+            self.get_logger().error(
+                "No se pudo apagar. Falta el permiso en "
+                "/etc/sudoers.d/dinavex (ver README)"
+            )
 
     # ==============================================
     # CERRAR PROGRAMA

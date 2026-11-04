@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Layout, Menu, Tag, Button, Typography, message } from "antd";
-import { DashboardOutlined, ControlOutlined, LineChartOutlined, StopOutlined, MenuOutlined } from "@ant-design/icons";
+import { Layout, Menu, Tag, Button, Popconfirm, Typography, message } from "antd";
+import { DashboardOutlined, ControlOutlined, LineChartOutlined, StopOutlined, MenuOutlined, PoweroffOutlined } from "@ant-design/icons";
 import { abrirConexionRos, enviarComando } from "./ros/conexionRos";
 import Monitor from "./Pages/Monitor/Monitor";
 import Control from "./Pages/Control/Control";
@@ -70,13 +70,25 @@ class App extends Component {
     }
   }
 
+  // La Pi revisa otra vez que el robot esté en paro antes de apagarse (receptor_stm32.py)
+  apagarPi() {
+    if (enviarComando("apagar_pi")) {
+      message.success("Apagado enviado");
+    } else {
+      message.error("Sin conexión con ROS 2");
+    }
+  }
+
   render() {
-    const { conectadoRos, ultimaRecepcion } = this.props;
+    const { conectadoRos, ultimaRecepcion, telemetria } = this.props;
     const { paginaActual, ahora, esCelular, menuCerrado } = this.state;
 
     const pagina = PAGINAS.find((p) => p.key === paginaActual);
     const PaginaActual = pagina.componente;
     const conDatos = ultimaRecepcion !== null && ahora - ultimaRecepcion < TIEMPO_SIN_DATOS;
+
+    // Si el STM32 dejó de mandar datos no se sabe su estado, entonces sí se deja apagar
+    const robotEncendido = conDatos && telemetria.estado === 1;
 
     return (
       <Layout className="layout">
@@ -101,6 +113,22 @@ class App extends Component {
             items={PAGINAS.map(({ key, label, icon }) => ({ key, label, icon }))}
             onClick={this.cambiarPagina.bind(this)}
           />
+
+          <div className="apagar-pi">
+            <Popconfirm
+              title="¿Apagar la Raspberry Pi?"
+              description="Se corta el Wi-Fi y la interfaz deja de funcionar."
+              okText="Sí"
+              cancelText="No"
+              onConfirm={this.apagarPi.bind(this)}
+              disabled={!conectadoRos || robotEncendido}
+            >
+              <Button danger ghost block icon={<PoweroffOutlined />} disabled={!conectadoRos || robotEncendido}>
+                Apagar Raspberry
+              </Button>
+            </Popconfirm>
+            {robotEncendido && <div className="aviso">Da PARO para poder apagarla</div>}
+          </div>
         </Sider>
 
         {/* En el celular, fondo oscuro detrás del menú; al tocarlo se cierra */}
@@ -153,6 +181,7 @@ const mapStateToProps = (state) => {
   return {
     conectadoRos: state.robot.conectadoRos,
     ultimaRecepcion: state.robot.ultimaRecepcion,
+    telemetria: state.robot.telemetria,
   };
 };
 

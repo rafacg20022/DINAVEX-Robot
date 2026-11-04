@@ -55,6 +55,8 @@
 #
 # - adelante y atras se repiten cada 200 ms mientras se mantiene presionado
 #   el botón en la interfaz. Al soltarlo se manda detener.
+# - {"cmd":"apagar_pi"} no llega al STM32: receptor_stm32.py apaga la
+#   Raspberry Pi, solo si el robot está en paro.
 #
 # Los campos siempre llegan en este orden y sin espacios, así que en el
 # STM32 se pueden leer sin librerías (sscanf necesita -u _scanf_float):
