@@ -3,12 +3,10 @@ import { ResponsiveLineCanvas } from "@nivo/line";
 import { AZUL } from "../constants/colores";
 
 // Gráfica de una o varias señales.
-//   historial: lista de datos guardados en el store
-//   series:    [{ campo: "vel_izq", etiqueta: "Izquierda" }, ...]
-//   ventana:   cuántos segundos se muestran
-// Se usa la versión canvas de nivo porque es más rápida en el celular.
+// series: [{ campo: "vel_izq", etiqueta: "Izquierda" }, ...]
+// ventana: segundos que se muestran
 
-// Primera línea con el azul del logo; la segunda en naranja para distinguirlas bien
+// Colores de las líneas
 const COLORES = [AZUL, "#fa8c16", "#52c41a", "#eb2f96"];
 
 const GraficaItem = ({ historial, series, ventana = 30, altura = 220 }) => {
@@ -20,7 +18,7 @@ const GraficaItem = ({ historial, series, ventana = 30, altura = 220 }) => {
     );
   }
 
-  // El eje X es el tiempo hacia atrás: 0 = ahora, -30 = hace 30 s
+  // Eje X en segundos, 0 es ahora
   const tUltimo = historial[historial.length - 1].t;
   const puntos = historial.filter((p) => p.t >= tUltimo - ventana);
 
@@ -58,5 +56,5 @@ const GraficaItem = ({ historial, series, ventana = 30, altura = 220 }) => {
   );
 };
 
-// React.memo: si la gráfica está en pausa no se vuelve a dibujar
+// memo para que no se vuelva a dibujar si está en pausa
 export default React.memo(GraficaItem);

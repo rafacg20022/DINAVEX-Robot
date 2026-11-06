@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Layout, Menu, Tag, Button, Popconfirm, Typography, message } from "antd";
+import { Layout, Menu, Tag, Button, Popconfirm, Input, Typography, message } from "antd";
 import { DashboardOutlined, ControlOutlined, LineChartOutlined, StopOutlined, MenuOutlined, PoweroffOutlined } from "@ant-design/icons";
 import { abrirConexionRos, enviarComando } from "./ros/conexionRos";
 import Monitor from "./Pages/Monitor/Monitor";
@@ -14,8 +14,7 @@ import logo from "./assets/logo.jpg";
   2. Importarla aquí arriba.
   3. Agregarla a PAGINAS con un ícono de @ant-design/icons.
 
-  No se usan rutas (/control, /graficas) porque al recargar la página
-  el servidor de la Pi (python http.server) daría error 404.
+  No se usan rutas porque al recargar la página da error 404 en la Pi.
 */
 
 const { Header, Content, Footer, Sider } = Layout;
@@ -26,21 +25,25 @@ const PAGINAS = [
   { key: "graficas", label: "Gráficas", icon: <LineChartOutlined />, componente: Graficas },
 ];
 
-// Si pasa más de 1 s sin datos, el STM32 se marca "sin datos"
+// Tiempo para marcar "sin datos" (ms)
 const TIEMPO_SIN_DATOS = 1000;
+
+// Código para apagar la Raspberry
+const CODIGO_APAGAR = "robot2026";
 
 class App extends Component {
   state = {
     paginaActual: "monitor",
     ahora: Date.now(),
-    esCelular: false,   // pantalla chica: el menú se abre con el botón ☰
+    esCelular: false,   // pantalla chica
     menuCerrado: false,
+    codigoApagar: "",
   };
 
   componentDidMount() {
     this.cerrarConexionRos = abrirConexionRos(this.props.dispatch);
 
-    // Para revisar cada medio segundo si siguen llegando datos
+    // Revisar cada 0.5 s si siguen llegando datos
     this.reloj = setInterval(() => this.setState({ ahora: Date.now() }), 500);
   }
 
@@ -52,16 +55,16 @@ class App extends Component {
   cambiarPagina(e) {
     this.setState({ paginaActual: e.key });
 
-    // En el celular el menú se cierra al elegir una página
+    // En celular cerrar el menú
     if (this.state.esCelular) this.setState({ menuCerrado: true });
   }
 
-  // antd avisa cuando la pantalla pasa de grande a chica (y al revés)
+  // Cuando cambia el tamaño de la pantalla
   cambiarTamano(esCelular) {
     this.setState({ esCelular, menuCerrado: esCelular });
   }
 
-  // Ojo: este botón depende del Wi-Fi, no reemplaza un paro de emergencia físico
+  // Depende del Wi-Fi, no reemplaza el paro de emergencia físico
   paro() {
     if (enviarComando("paro")) {
       message.success("Paro enviado");
@@ -70,8 +73,13 @@ class App extends Component {
     }
   }
 
-  // La Pi revisa otra vez que el robot esté en paro antes de apagarse (receptor_stm32.py)
+  // La Pi también revisa que el robot esté en paro
   apagarPi() {
+    if (this.state.codigoApagar !== CODIGO_APAGAR) {
+      message.error("Código incorrecto");
+      return;
+    }
+
     if (enviarComando("apagar_pi")) {
       message.success("Apagado enviado");
     } else {
@@ -81,13 +89,13 @@ class App extends Component {
 
   render() {
     const { conectadoRos, ultimaRecepcion, telemetria } = this.props;
-    const { paginaActual, ahora, esCelular, menuCerrado } = this.state;
+    const { paginaActual, ahora, esCelular, menuCerrado, codigoApagar } = this.state;
 
     const pagina = PAGINAS.find((p) => p.key === paginaActual);
     const PaginaActual = pagina.componente;
     const conDatos = ultimaRecepcion !== null && ahora - ultimaRecepcion < TIEMPO_SIN_DATOS;
 
-    // Si el STM32 dejó de mandar datos no se sabe su estado, entonces sí se deja apagar
+    // Sin datos del STM32 sí se deja apagar
     const robotEncendido = conDatos && telemetria.estado === 1;
 
     return (
@@ -117,10 +125,25 @@ class App extends Component {
           <div className="apagar-pi">
             <Popconfirm
               title="¿Apagar la Raspberry Pi?"
-              description="Se corta el Wi-Fi y la interfaz deja de funcionar."
+              description={
+                <div>
+                  Se corta el Wi-Fi y la interfaz deja de funcionar.
+                  <Input.Password
+                    placeholder="Código"
+                    value={codigoApagar}
+                    onChange={(e) => this.setState({ codigoApagar: e.target.value })}
+                    style={{ marginTop: 8 }}
+                  />
+                </div>
+              }
               okText="Sí"
               cancelText="No"
+              okButtonProps={{ disabled: !codigoApagar }}
               onConfirm={this.apagarPi.bind(this)}
+              onOpenChange={(abierto) => {
+                // Borrar el código al cerrar
+                if (!abierto) this.setState({ codigoApagar: "" });
+              }}
               disabled={!conectadoRos || robotEncendido}
             >
               <Button danger ghost block icon={<PoweroffOutlined />} disabled={!conectadoRos || robotEncendido}>
@@ -131,7 +154,7 @@ class App extends Component {
           </div>
         </Sider>
 
-        {/* En el celular, fondo oscuro detrás del menú; al tocarlo se cierra */}
+        {/* Fondo oscuro del menú en celular */}
         {esCelular && !menuCerrado && (
           <div className="fondo-menu" onClick={() => this.setState({ menuCerrado: true })} />
         )}

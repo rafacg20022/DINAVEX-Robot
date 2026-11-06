@@ -10,11 +10,9 @@ import json
 
 
 # Simulador para probar la interfaz sin el robot.
-# Publica los mismos datos que el STM32 en /datos_stm32 y responde a los
-# comandos de /comandos_stm32. No es un modelo real del péndulo, solo
-# genera señales parecidas.
+# Manda datos parecidos a los del STM32 (no es el modelo real).
 #
-# En la Raspberry, antes de correrlo hay que detener el receptor:
+# Antes de correrlo hay que detener el receptor:
 #   sudo systemctl stop robot-serial
 #   python3 simulador_robot.py
 
@@ -112,7 +110,7 @@ class SimuladorRobot(Node):
 
         self.tiempo += self.dt
 
-        # Si pasan 0.5 s sin adelante/atrás se detiene (igual que el STM32)
+        # Detenerse si pasan 0.5 s sin adelante/atrás
         if time.monotonic() - self.ultimo_movimiento > 0.5:
             self.movimiento = 0
 
@@ -120,8 +118,7 @@ class SimuladorRobot(Node):
 
             setpoint = 2.0 * self.movimiento
 
-            # Oscilación amortiguada: con más Kp oscila más rápido
-            # y con más Kd se calma más rápido
+            # Oscilación amortiguada según Kp y Kd
             w = 0.55 * math.sqrt(self.ganancias["pd_kp"])
             z = min(max(0.075 * self.ganancias["pd_kd"], 0.02), 2.0)
 
@@ -134,7 +131,7 @@ class SimuladorRobot(Node):
             self.inclinacion += self.velocidad_angular * self.dt
             self.inclinacion = max(-30.0, min(30.0, self.inclinacion))
 
-            # Un empujón cada 8 s para que siempre se mueva algo
+            # Un empujón cada 8 s
             if self.tiempo >= self.siguiente_empujon:
                 self.velocidad_angular += random.choice([-1, 1]) * random.uniform(8, 15)
                 self.siguiente_empujon += 8.0
@@ -163,7 +160,7 @@ class SimuladorRobot(Node):
             error = par = velocidad = 0.0
             ruido = 0.0
 
-        # Los mismos datos que manda el STM32 (ver serial/protocolo.py)
+        # Mismos datos que manda el STM32
         datos = {
             "inclinacion": round(self.inclinacion + ruido * random.gauss(0, 0.05), 2),
             "error": round(error, 2),

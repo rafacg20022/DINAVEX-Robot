@@ -1,13 +1,13 @@
 /*
-  Datos que se muestran como tarjetas en la página Monitor.
-  "campo" debe llamarse igual que en el JSON del STM32 (ver serial/protocolo.py).
+  Datos de la página Monitor.
+  "campo" es el nombre del dato en el JSON del STM32.
 
   CÓMO AGREGAR UN DATO NUEVO
-  1. Agregarlo primero en serial/protocolo.py (ahí vienen los pasos).
-  2. Agregar una línea aquí abajo, por ejemplo:
+  1. Agregarlo primero en serial/protocolo.py.
+  2. Agregar una línea aquí, por ejemplo:
        { campo: "temp_driver", etiqueta: "Temperatura driver", unidad: "°C", decimales: 1 },
-  3. Para graficarlo, agregarlo en src/Pages/Graficas/Graficas.jsx.
-  4. Compilar: npm run build
+  3. Si se quiere graficar, agregarlo en src/Pages/Graficas/Graficas.jsx.
+  4. Correr npm run build
 */
 
 export const DATOS_MONITOR = [
@@ -20,7 +20,7 @@ export const DATOS_MONITOR = [
   { campo: "bat_24v", etiqueta: "Batería 24 V", unidad: "V", decimales: 1 },
 ];
 
-// Ganancias de los dos controladores (página Control)
+// Ganancias de la página Control
 export const GANANCIAS = [
   { campo: "pd_kp", etiqueta: "Kp", controlador: "PD" },
   { campo: "pd_kd", etiqueta: "Kd", controlador: "PD" },

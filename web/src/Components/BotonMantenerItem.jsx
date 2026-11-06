@@ -1,10 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { Button } from "antd";
 
-// Botón de mantener presionado (Adelante / Atrás).
-// Mientras está presionado manda el comando cada 200 ms y al soltarlo manda "detener".
-// También manda "detener" si se bloquea el celular o se cambia de ventana.
-// Si aun así se cae el Wi-Fi, el STM32 se detiene solo a los 500 ms.
+// Botón de Adelante / Atrás.
+// Manda el comando cada 200 ms mientras está presionado y "detener" al soltarlo.
 
 const INTERVALO = 200; // ms
 
@@ -28,7 +26,7 @@ const BotonMantenerItem = ({ comando, onComando, disabled, icon, children }) => 
     intervalo.current = setInterval(() => onComandoRef.current(comando), INTERVALO);
   };
 
-  // Soltar si la ventana pierde el foco o se oculta la pantalla
+  // Soltar si se cambia de ventana o se bloquea el celular
   useEffect(() => {
     const alCambiarVisibilidad = () => {
       if (document.hidden) soltar();
@@ -42,7 +40,7 @@ const BotonMantenerItem = ({ comando, onComando, disabled, icon, children }) => 
     };
   }, []);
 
-  // Soltar si el botón se deshabilita mientras está presionado
+  // Soltar si se deshabilita el botón
   useEffect(() => {
     if (disabled) soltar();
   }, [disabled]);

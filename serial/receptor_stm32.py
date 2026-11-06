@@ -19,9 +19,7 @@ class ReceptorSerial(Node):
 
         super().__init__('receptor_serial')
 
-        # ==========================================
         # CONFIGURACION ROS 2
-        # ==========================================
 
         # Datos del STM32 hacia la interfaz
         self.publisher = self.create_publisher(
@@ -38,13 +36,11 @@ class ReceptorSerial(Node):
             10
         )
 
-        # ==========================================
         # CONFIGURACION SERIAL
-        # ==========================================
 
         self.baudrate = 115200
 
-        # Formato de los mensajes: "json" o "texto" (ver protocolo.py)
+        # Formato de los mensajes: "json" o "texto"
         self.formato = "json"
 
         self.puerto = None
@@ -61,7 +57,7 @@ class ReceptorSerial(Node):
         self.timeout_datos = 5.0
         self.ultimo_dato = None
 
-        # Último estado que mandó el STM32 (1 = encendido, 0 = apagado)
+        # Estado del robot (1 encendido, 0 apagado)
         self.estado_stm32 = None
 
         # Temporizador de lectura: 100 Hz
@@ -78,9 +74,7 @@ class ReceptorSerial(Node):
             "Buscando STM32 o ESP32..."
         )
 
-    # ==============================================
     # DETECTAR DISPOSITIVO USB
-    # ==============================================
 
     def buscar_puerto(self):
 
@@ -132,9 +126,7 @@ class ReceptorSerial(Node):
 
                 return dispositivo, "ESP32"
 
-        # ==========================================
         # BUSQUEDA ALTERNATIVA
-        # ==========================================
 
         # Algunos STM32 y ESP32 utilizan ttyACM
 
@@ -158,9 +150,7 @@ class ReceptorSerial(Node):
 
         return None, None
 
-    # ==============================================
     # CONECTAR AL DISPOSITIVO
-    # ==============================================
 
     def conectar(self):
 
@@ -183,8 +173,7 @@ class ReceptorSerial(Node):
 
         try:
 
-            # write_timeout de 0.1 s: si el STM32 deja de leer,
-            # el envío de un comando no se queda trabado
+            # write_timeout para que no se trabe al enviar
             self.puerto = serial.Serial(
                 port=dispositivo,
                 baudrate=self.baudrate,
@@ -230,9 +219,7 @@ class ReceptorSerial(Node):
 
             self.puerto = None
 
-    # ==============================================
     # DESCONECTAR DISPOSITIVO
-    # ==============================================
 
     def desconectar(self):
 
@@ -260,9 +247,7 @@ class ReceptorSerial(Node):
             "Esperando reconexión USB..."
         )
 
-    # ==============================================
     # LEER DATOS SERIAL
-    # ==============================================
 
     def actualizar(self):
 
@@ -312,16 +297,14 @@ class ReceptorSerial(Node):
                     if not texto:
                         continue
 
-                    # Mostrar mensaje recibido. Va en debug porque
-                    # 20 mensajes por segundo llenan el log de la SD.
-                    # Para verlos: --ros-args --log-level debug
+                    # Mostrar mensaje recibido (solo en modo debug)
 
                     self.get_logger().debug(
                         f"RX [{self.tipo_dispositivo}] "
                         f"[{self.ruta_puerto}]: {texto}"
                     )
 
-                    # Revisar que vengan todos los datos (ver protocolo.py)
+                    # Revisar que vengan todos los datos
                     try:
 
                         datos_stm32 = protocolo.leer_datos(
@@ -339,9 +322,7 @@ class ReceptorSerial(Node):
 
                         continue
 
-                    # ==================================
                     # PUBLICAR EN ROS 2
-                    # ==================================
 
                     mensaje = String()
 
@@ -357,9 +338,7 @@ class ReceptorSerial(Node):
 
                     self.estado_stm32 = datos_stm32["estado"]
 
-            # ======================================
             # VERIFICAR TIEMPO SIN DATOS
-            # ======================================
 
             if self.ultimo_dato is not None:
 
@@ -385,18 +364,16 @@ class ReceptorSerial(Node):
 
             self.desconectar()
 
-    # ==============================================
     # ENVIAR COMANDOS AL STM32
-    # ==============================================
 
     def recibir_comando(self, msg):
 
-        # La interfaz manda por ejemplo: {"cmd": "paro"}
+        # Ejemplo: {"cmd": "paro"}
         try:
 
             comando = json.loads(msg.data)
 
-            # Este comando es para la Raspberry, no para el STM32
+            # Este comando no va al STM32
             if comando.get("cmd") == "apagar_pi":
                 self.apagar_pi()
                 return
@@ -448,13 +425,11 @@ class ReceptorSerial(Node):
 
             self.desconectar()
 
-    # ==============================================
     # APAGAR LA RASPBERRY PI
-    # ==============================================
 
     def apagar_pi(self):
 
-        # Con el robot encendido no se apaga: primero hay que dar PARO
+        # Solo se apaga si el robot está en paro
         if self.estado_stm32 == 1:
 
             self.get_logger().warning(
@@ -467,8 +442,7 @@ class ReceptorSerial(Node):
             "Apagando la Raspberry Pi..."
         )
 
-        # -n: si falta el permiso en sudoers marca error
-        # en lugar de quedarse esperando la contraseña
+        # -n para que no pida contraseña
         resultado = subprocess.run(
             ["sudo", "-n", "/usr/bin/systemctl", "poweroff"]
         )
@@ -480,9 +454,7 @@ class ReceptorSerial(Node):
                 "/etc/sudoers.d/dinavex (ver README)"
             )
 
-    # ==============================================
     # CERRAR PROGRAMA
-    # ==============================================
 
     def destroy_node(self):
 
@@ -497,9 +469,7 @@ class ReceptorSerial(Node):
         return super().destroy_node()
 
 
-# ==============================================
 # FUNCION PRINCIPAL
-# ==============================================
 
 def main():
 

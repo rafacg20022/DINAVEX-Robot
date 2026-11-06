@@ -13,7 +13,6 @@ import { GraficaItem } from "../../Components/Items";
       series: [{ campo: "temp_driver", etiqueta: "Driver" }],
     },
   "campo" es el nombre del dato en el JSON del STM32.
-  Una gráfica puede tener varias series (como izquierda y derecha).
 */
 
 const GRAFICAS = [
@@ -58,7 +57,7 @@ class Graficas extends Component {
     if (this.state.pausado) {
       this.setState({ pausado: false, historialPausado: [] });
     } else {
-      // Se guarda una copia de los datos al momento de pausar
+      // Guardar los datos al pausar
       this.setState({ pausado: true, historialPausado: this.props.historial });
     }
   }

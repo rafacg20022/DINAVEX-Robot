@@ -2,10 +2,10 @@ import React from "react";
 import { Card, Statistic } from "antd";
 import formatearValor from "./formatearValor";
 
-// Tarjeta con un dato del robot: título, valor y unidad.
+// Tarjeta para mostrar un dato
 const DatoItem = ({ titulo, valor, unidad, decimales = 1, color }) => {
   return (
-    // height 100%: todas las tarjetas de un renglón miden lo mismo
+    // Misma altura en todas las tarjetas
     <Card size="small" style={{ height: "100%" }}>
       <Statistic
         title={titulo}

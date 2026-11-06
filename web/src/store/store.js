@@ -1,4 +1,4 @@
-// En Redux 5 createStore se importa como legacy_createStore, pero funciona igual
+// En Redux 5 createStore se llama legacy_createStore
 import { combineReducers, legacy_createStore as createStore, compose } from "redux";
 import robotReducer from "./reducers/robot";
 

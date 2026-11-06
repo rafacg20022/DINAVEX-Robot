@@ -1,18 +1,14 @@
 import { rosConectado, rosDesconectado, telemetriaRecibida } from "../store/actions/robot";
 
 /*
-  Conexión con ROS 2 por medio de rosbridge (WebSocket en el puerto 9090).
-
-  - Recibe /datos_stm32: los datos del STM32 en JSON.
-  - Publica en /comandos_stm32: los comandos para el STM32, por ejemplo {"cmd":"paro"}.
-
-  Si se pierde la conexión vuelve a intentar sola, esperando cada vez un poco
-  más (máximo 15 s).
+  Conexión con ROS 2 por rosbridge (puerto 9090).
+  Recibe /datos_stm32 y manda los comandos a /comandos_stm32.
+  Si se pierde la conexión se vuelve a conectar sola.
 
   CÓMO AGREGAR UN COMANDO NUEVO
-  1. Agregarlo primero en serial/protocolo.py (ahí vienen los pasos).
-  2. Desde la página mandarlo con:  enviarComando("calibrar")
-     Si lleva datos:               enviarComando("ganancias", { pd_kp: 32, ... })
+  1. Agregarlo primero en serial/protocolo.py.
+  2. Mandarlo desde la página con enviarComando("calibrar")
+     o con datos: enviarComando("ganancias", { pd_kp: 32, ... })
 */
 
 const MAX_DELAY = 15000;
@@ -20,7 +16,7 @@ const MAX_DELAY = 15000;
 let socket = null;
 
 const obtenerUrl = () => {
-  // Con "npm run dev" la dirección de la Pi se pone en el archivo .env
+  // Con npm run dev se usa la dirección del .env
   if (import.meta.env.DEV && import.meta.env.VITE_ROSBRIDGE_URL_DEV) {
     return import.meta.env.VITE_ROSBRIDGE_URL_DEV;
   }
@@ -38,7 +34,7 @@ export const abrirConexionRos = (dispatch) => {
     socket.onopen = () => {
       reconnectDelay = 1000;
 
-      // throttle_rate: 100 -> máximo 10 mensajes por segundo para no saturar el celular
+      // Máximo 10 mensajes por segundo
       socket.send(JSON.stringify({
         op: "subscribe",
         topic: "/datos_stm32",
@@ -89,7 +85,7 @@ export const abrirConexionRos = (dispatch) => {
   };
 };
 
-// Manda un comando al STM32. Regresa false si no hay conexión con ROS 2.
+// Mandar un comando al STM32 (regresa false si no hay conexión)
 export const enviarComando = (cmd, datos = {}) => {
   if (!socket || socket.readyState !== WebSocket.OPEN) return false;
 

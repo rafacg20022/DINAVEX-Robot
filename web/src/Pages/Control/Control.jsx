@@ -7,7 +7,7 @@ import { GANANCIAS } from "../../constants/telemetria";
 import { enviarComando } from "../../ros/conexionRos";
 
 // Página Control: ganancias, arranque y movimiento.
-// El PARO está en el encabezado (App.jsx) para que se vea en todas las páginas.
+// El botón de PARO está en App.jsx
 
 // El STM32 manda las ganancias con 3 decimales
 const TOLERANCIA_GANANCIAS = 0.0005;
@@ -15,7 +15,7 @@ const TOLERANCIA_GANANCIAS = 0.0005;
 class Control extends Component {
   state = {
     ganancias: null,  // lo que está escrito en los campos
-    enviadas: null,   // las últimas que se mandaron, para ver si ya se aplicaron
+    enviadas: null,   // las últimas que se mandaron
   };
 
   componentDidMount() {
@@ -26,7 +26,7 @@ class Control extends Component {
     this.llenarGanancias();
   }
 
-  // La primera vez que llegan datos, los campos se llenan con las ganancias del STM32
+  // Llenar los campos con las ganancias del STM32 la primera vez
   llenarGanancias() {
     if (this.state.ganancias === null && this.props.telemetria) {
       this.recargarGanancias();
@@ -65,7 +65,7 @@ class Control extends Component {
     }
   }
 
-  // Muestra "Aplicado" cuando el STM32 ya reporta las ganancias que se mandaron
+  // Revisar si el STM32 ya tiene las ganancias que se mandaron
   estadoGanancias() {
     const { enviadas } = this.state;
     const { telemetria } = this.props;

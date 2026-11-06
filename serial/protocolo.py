@@ -1,111 +1,72 @@
-# ==============================================================
 # PROTOCOLO SERIAL STM32 <-> RASPBERRY PI
-# ==============================================================
 #
-# Funciones para leer los datos que manda el STM32 y para armar los
-# comandos que se le mandan. Las usa receptor_stm32.py.
+# Funciones para leer los datos del STM32 y armar los comandos que se
+# le mandan. Las usa receptor_stm32.py.
 #
-# Conexión: USB serial a 115200 baudios. Cada mensaje es una línea que
-# termina en "\n". Hay dos formatos: json (el que usamos) y texto. Se
-# elige con self.formato en receptor_stm32.py.
+# Serial a 115200 baudios, un mensaje por línea. Hay dos formatos, json
+# (el que usamos) y texto. Se cambia en receptor_stm32.py.
 #
-# --------------------------------------------------------------
-# DATOS QUE MANDA EL STM32 (20 veces por segundo)
-# --------------------------------------------------------------
+# DATOS DEL STM32 (20 veces por segundo)
 #
 # json:
 # {"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10}
 #
-# texto (mismos datos en el mismo orden):
+# texto:
 # $TEL,-1.25,1.25,42.0,43.0,0.12,0.11,32.000,1.600,0.500,0.050,1,24.10
 #
-#   inclinacion      grados (positivo = hacia adelante)
-#   error            grados (setpoint - inclinación, del controlador PD)
-#   vel_izq, vel_der velocidad de las ruedas en RPM
-#   par_izq, par_der par de las ruedas en N·m
-#   pd_kp, pd_kd     ganancias del PD que está usando el STM32
-#   pi_kp, pi_ki     ganancias del PI que está usando el STM32
-#   estado           1 = encendido, 0 = apagado
-#   bat_24v          voltaje de la batería de 24 V
+# inclinacion y error en grados (positivo hacia adelante), velocidades
+# en RPM, par en N·m y bat_24v en volts. estado: 1 encendido, 0 apagado.
+# pd_kp, pd_kd, pi_kp y pi_ki son las ganancias que tiene el STM32, con
+# 3 decimales.
 #
-# - Las ganancias se mandan con 3 decimales (%.3f) para que la interfaz
-#   pueda confirmar que se aplicaron.
-# - Si un dato todavía no se mide, mandar 0. Si falta un campo, la línea
-#   se descarta.
+# Si falta un dato la línea se descarta. Si todavía no se mide, mandar 0.
 #
-# Ejemplo en C (necesita -u _printf_float en el linker):
+# COMANDOS PARA EL STM32
 #
-#   printf("{\"inclinacion\":%.2f,\"error\":%.2f,\"vel_izq\":%.1f,\"vel_der\":%.1f,"
-#          "\"par_izq\":%.3f,\"par_der\":%.3f,\"pd_kp\":%.3f,\"pd_kd\":%.3f,"
-#          "\"pi_kp\":%.3f,\"pi_ki\":%.3f,\"estado\":%d,\"bat_24v\":%.2f}\n",
-#          inclinacion, error, vel_izq, vel_der, par_izq, par_der,
-#          pd_kp, pd_kd, pi_kp, pi_ki, estado, bat_24v);
+# json:  {"cmd":"paro"}, {"cmd":"arranque"}, {"cmd":"adelante"},
+#        {"cmd":"atras"}, {"cmd":"detener"} y
+#        {"cmd":"ganancias","pd_kp":32.0,"pd_kd":1.6,"pi_kp":0.5,"pi_ki":0.05}
 #
-# --------------------------------------------------------------
-# COMANDOS QUE RECIBE EL STM32
-# --------------------------------------------------------------
+# texto: $PARO, $ARR, $ADE, $ATR, $DET y $GAN,32.000,1.600,0.500,0.050
 #
-#   json                                                                    texto
-#   {"cmd":"ganancias","pd_kp":32.0,"pd_kd":1.6,"pi_kp":0.5,"pi_ki":0.05}   $GAN,32.000,1.600,0.500,0.050
-#   {"cmd":"arranque"}                                                      $ARR
-#   {"cmd":"paro"}                                                          $PARO
-#   {"cmd":"adelante"}                                                      $ADE
-#   {"cmd":"atras"}                                                         $ATR
-#   {"cmd":"detener"}                                                       $DET
+# Los json van sin espacios y siempre en ese orden.
 #
-# - adelante y atras se repiten cada 200 ms mientras se mantiene presionado
-#   el botón en la interfaz. Al soltarlo se manda detener.
-# - {"cmd":"apagar_pi"} no llega al STM32: receptor_stm32.py apaga la
-#   Raspberry Pi, solo si el robot está en paro.
+# adelante y atras se mandan cada 200 ms mientras se tiene presionado el
+# botón. Al soltarlo se manda detener.
 #
-# Los campos siempre llegan en este orden y sin espacios, así que en el
-# STM32 se pueden leer sin librerías (sscanf necesita -u _scanf_float):
+# apagar_pi no llega al STM32, con ese receptor_stm32.py apaga la Pi.
 #
-#   if (strstr(linea, "\"cmd\":\"paro\"")) paro();
-#   else if (strstr(linea, "\"cmd\":\"arranque\"")) arranque();
-#   else if (strstr(linea, "\"cmd\":\"adelante\"")) mover(1);
-#   else if (strstr(linea, "\"cmd\":\"atras\"")) mover(-1);
-#   else if (strstr(linea, "\"cmd\":\"detener\"")) mover(0);
-#   else if (strstr(linea, "\"cmd\":\"ganancias\""))
-#       sscanf(linea, "{\"cmd\":\"ganancias\",\"pd_kp\":%f,\"pd_kd\":%f,\"pi_kp\":%f,\"pi_ki\":%f}",
-#              &pd_kp, &pd_kd, &pi_kp, &pi_ki);
+# Lo que tiene que hacer el STM32:
+# 1. Equilibrar siempre, aunque se pierda la comunicación con la Pi.
+# 2. Apagar los motores solo con paro (la Pi nunca lo manda sola) y
+#    volver a operar con arranque.
+# 3. Con adelante/atras cambiar la velocidad de referencia y con detener
+#    regresarla a 0.
+# 4. Si pasan 500 ms sin adelante ni atras, detenerse.
+# 5. Aplicar las ganancias que lleguen y mandarlas en los datos.
+# 6. Ignorar lo que no entienda.
 #
-# Reglas para el STM32:
-# 1. Equilibra el robot por su cuenta, con o sin la Pi. Si se pierde la
-#    comunicación sigue equilibrando. La Pi nunca manda paro por su cuenta.
-# 2. paro es el único comando que apaga los motores. Después de un paro
-#    solo vuelve a operar con arranque.
-# 3. adelante y atras solo cambian la velocidad de referencia; detener la
-#    regresa a cero. El equilibrio sigue activo.
-# 4. Si pasan 500 ms sin recibir adelante ni atras, hacer lo mismo que con
-#    detener (por si se cae el Wi-Fi con el botón presionado).
-# 5. Al recibir ganancias, aplicarlas y mandarlas en los siguientes datos.
-# 6. Ignorar las líneas que no entienda.
+# Para usar printf y sscanf con decimales en el STM32 hay que agregar
+# -u _printf_float y -u _scanf_float en el linker.
 #
-# --------------------------------------------------------------
 # CÓMO AGREGAR UN DATO NUEVO
-# --------------------------------------------------------------
-# 1. En el STM32, agregarlo a la línea (al final si se usa texto).
-# 2. Agregar su nombre al final de CAMPOS (aquí abajo).
+# 1. En el STM32, agregarlo al mensaje (al final si se usa texto).
+# 2. Agregarlo al final de CAMPOS.
 # 3. Agregarlo en ros2/simulador_robot.py, en el diccionario datos.
 # 4. En la interfaz, agregarlo en web/src/constants/telemetria.js y, si se
 #    quiere graficar, en web/src/Pages/Graficas/Graficas.jsx.
 #
-# --------------------------------------------------------------
 # CÓMO AGREGAR UN COMANDO NUEVO
-# --------------------------------------------------------------
-# 1. En el STM32, atender la línea nueva.
-# 2. Agregarlo en COMANDOS (aquí abajo) con su versión en texto.
+# 1. En el STM32, atender el comando nuevo.
+# 2. Agregarlo en COMANDOS con su versión en texto.
 # 3. Agregarlo en ros2/simulador_robot.py, en recibir_comando.
-# 4. En la interfaz, mandarlo con enviarComando("nombre") (ver
-#    web/src/ros/conexionRos.js).
-# ==============================================================
+# 4. En la interfaz, mandarlo con enviarComando("nombre").
 
 import json
 import math
 
 
-# Datos que manda el STM32 (en el orden del formato texto)
+# Datos que manda el STM32, en orden
 CAMPOS = [
     "inclinacion", "error",
     "vel_izq", "vel_der",
@@ -117,7 +78,7 @@ CAMPOS = [
 
 GANANCIAS = ["pd_kp", "pd_kd", "pi_kp", "pi_ki"]
 
-# Comandos que entiende el STM32 y cómo se escriben en formato texto
+# Comandos y su versión en texto
 COMANDOS = {
     "ganancias": "$GAN",
     "arranque": "$ARR",
@@ -130,7 +91,7 @@ COMANDOS = {
 
 def revisar_numero(nombre, valor):
 
-    # En Python true/false cuentan como números, por eso se revisan aparte
+    # True y False también cuentan como números
     if isinstance(valor, bool) or not isinstance(valor, (int, float)):
         raise ValueError(f"{nombre} no es un número: {valor}")
 
@@ -140,9 +101,7 @@ def revisar_numero(nombre, valor):
     return float(valor)
 
 
-# ==============================================
 # LEER LOS DATOS DEL STM32
-# ==============================================
 
 def leer_datos(linea, formato):
 
@@ -181,7 +140,7 @@ def leer_datos(linea, formato):
     if faltan:
         raise ValueError("faltan campos: " + ", ".join(faltan))
 
-    # Solo se guardan los campos conocidos, ya revisados
+    # Guardar solo los campos conocidos
     datos = {}
 
     for campo in CAMPOS:
@@ -195,9 +154,7 @@ def leer_datos(linea, formato):
     return datos
 
 
-# ==============================================
 # ARMAR LOS COMANDOS PARA EL STM32
-# ==============================================
 
 def revisar_ganancias(ganancias):
 
@@ -242,7 +199,7 @@ def armar_comando(comando, formato, ganancias=None):
             for nombre in GANANCIAS:
                 mensaje[nombre] = round(ganancias[nombre], 3)
 
-        # Sin espacios para que el STM32 lo pueda leer con sscanf
+        # Sin espacios para leerlo fácil en el STM32
         linea = json.dumps(mensaje, separators=(",", ":"))
 
     return (linea + "\n").encode()

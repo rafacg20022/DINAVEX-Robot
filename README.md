@@ -74,7 +74,7 @@ La dirección de acceso es: `http://192.168.50.1:8000`
 
 Tiene tres páginas: Monitor, Control y Gráficas. El botón de PARO está siempre visible, pero depende del Wi-Fi, por lo que no sustituye a un paro de emergencia físico.
 
-Abajo del menú está el botón para apagar la Raspberry Pi. Solo funciona con el robot en paro.
+Abajo del menú está el botón para apagar la Raspberry Pi. Solo funciona con el robot en paro y pide un código (`CODIGO_APAGAR` en `web/src/App.jsx`).
 
 ## Servicios
 

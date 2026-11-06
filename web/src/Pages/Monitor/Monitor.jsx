@@ -4,8 +4,8 @@ import { Row, Col, Card } from "antd";
 import { DatoItem, GraficaItem } from "../../Components/Items";
 import { DATOS_MONITOR } from "../../constants/telemetria";
 
-// Página Monitor: los datos del robot de un vistazo.
-// Las tarjetas salen de DATOS_MONITOR (src/constants/telemetria.js).
+// Página Monitor
+// Las tarjetas salen de constants/telemetria.js
 
 class Monitor extends Component {
   render() {
