@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Layout, Menu, Tag, Button, Popconfirm, Input, Typography, message } from "antd";
+import { Layout, Menu, Tag, Button, Modal, Input, Typography, message } from "antd";
 import { DashboardOutlined, ControlOutlined, LineChartOutlined, StopOutlined, MenuOutlined, PoweroffOutlined } from "@ant-design/icons";
 import { abrirConexionRos, enviarComando } from "./ros/conexionRos";
 import Monitor from "./Pages/Monitor/Monitor";
@@ -37,6 +37,7 @@ class App extends Component {
     ahora: Date.now(),
     esCelular: false,   // pantalla chica
     menuCerrado: false,
+    modalApagar: false,
     codigoApagar: "",
   };
 
@@ -82,14 +83,20 @@ class App extends Component {
 
     if (enviarComando("apagar_pi")) {
       message.success("Apagado enviado");
+      this.cerrarModalApagar();
     } else {
       message.error("Sin conexión con ROS 2");
     }
   }
 
+  // Cerrar y borrar el código
+  cerrarModalApagar() {
+    this.setState({ modalApagar: false, codigoApagar: "" });
+  }
+
   render() {
     const { conectadoRos, ultimaRecepcion, telemetria } = this.props;
-    const { paginaActual, ahora, esCelular, menuCerrado, codigoApagar } = this.state;
+    const { paginaActual, ahora, esCelular, menuCerrado, modalApagar, codigoApagar } = this.state;
 
     const pagina = PAGINAS.find((p) => p.key === paginaActual);
     const PaginaActual = pagina.componente;
@@ -123,36 +130,41 @@ class App extends Component {
           />
 
           <div className="apagar-pi">
-            <Popconfirm
-              title="¿Apagar la Raspberry Pi?"
-              description={
-                <div>
-                  Se corta el Wi-Fi y la interfaz deja de funcionar.
-                  <Input.Password
-                    placeholder="Código"
-                    value={codigoApagar}
-                    onChange={(e) => this.setState({ codigoApagar: e.target.value })}
-                    style={{ marginTop: 8 }}
-                  />
-                </div>
-              }
-              okText="Sí"
-              cancelText="No"
-              okButtonProps={{ disabled: !codigoApagar }}
-              onConfirm={this.apagarPi.bind(this)}
-              onOpenChange={(abierto) => {
-                // Borrar el código al cerrar
-                if (!abierto) this.setState({ codigoApagar: "" });
-              }}
+            <Button
+              danger
+              ghost
+              block
+              icon={<PoweroffOutlined />}
               disabled={!conectadoRos || robotEncendido}
+              onClick={() => this.setState({ modalApagar: true })}
             >
-              <Button danger ghost block icon={<PoweroffOutlined />} disabled={!conectadoRos || robotEncendido}>
-                Apagar Raspberry
-              </Button>
-            </Popconfirm>
+              Apagar Raspberry
+            </Button>
             {robotEncendido && <div className="aviso">Da PARO para poder apagarla</div>}
           </div>
         </Sider>
+
+        {/* No cerrar al tocar afuera */}
+        <Modal
+          title="¿Apagar la Raspberry Pi?"
+          open={modalApagar}
+          centered
+          maskClosable={false}
+          okText="Apagar"
+          cancelText="Cancelar"
+          okButtonProps={{ danger: true, disabled: !codigoApagar }}
+          onOk={this.apagarPi.bind(this)}
+          onCancel={this.cerrarModalApagar.bind(this)}
+        >
+          <p>Se corta el Wi-Fi y la interfaz deja de funcionar.</p>
+          <Input.Password
+            size="large"
+            placeholder="Código"
+            value={codigoApagar}
+            onChange={(e) => this.setState({ codigoApagar: e.target.value })}
+            onPressEnter={this.apagarPi.bind(this)}
+          />
+        </Modal>
 
         {/* Fondo oscuro del menú en celular */}
         {esCelular && !menuCerrado && (
