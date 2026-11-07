@@ -1,11 +1,12 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Layout, Menu, Tag, Button, Modal, Input, Typography, message } from "antd";
-import { DashboardOutlined, ControlOutlined, LineChartOutlined, StopOutlined, MenuOutlined, PoweroffOutlined } from "@ant-design/icons";
+import { DashboardOutlined, ControlOutlined, LineChartOutlined, UsbOutlined, StopOutlined, MenuOutlined, PoweroffOutlined } from "@ant-design/icons";
 import { abrirConexionRos, enviarComando } from "./ros/conexionRos";
 import Monitor from "./Pages/Monitor/Monitor";
 import Control from "./Pages/Control/Control";
 import Graficas from "./Pages/Graficas/Graficas";
+import Serial from "./Pages/Serial/Serial";
 import logo from "./assets/logo.jpg";
 
 /*
@@ -23,6 +24,7 @@ const PAGINAS = [
   { key: "monitor", label: "Monitor", icon: <DashboardOutlined />, componente: Monitor },
   { key: "control", label: "Control", icon: <ControlOutlined />, componente: Control },
   { key: "graficas", label: "Gráficas", icon: <LineChartOutlined />, componente: Graficas },
+  { key: "serial", label: "Serial", icon: <UsbOutlined />, componente: Serial },
 ];
 
 // Tiempo para marcar "sin datos" (ms)

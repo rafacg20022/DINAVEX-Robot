@@ -29,6 +29,13 @@ class SimuladorRobot(Node):
             10
         )
 
+        # Tráfico crudo, igual que el receptor
+        self.publisher_crudo = self.create_publisher(
+            String,
+            '/serial_crudo',
+            10
+        )
+
         # Comandos de la interfaz
         self.subscription = self.create_subscription(
             String,
@@ -70,7 +77,16 @@ class SimuladorRobot(Node):
             'Simulador DINAVEX iniciado'
         )
 
+    def publicar_crudo(self, direccion, texto):
+
+        mensaje = String()
+        mensaje.data = json.dumps({"dir": direccion, "texto": texto})
+
+        self.publisher_crudo.publish(mensaje)
+
     def recibir_comando(self, msg):
+
+        self.publicar_crudo("tx", msg.data)
 
         try:
 
@@ -183,6 +199,9 @@ class SimuladorRobot(Node):
 
         # Publicar mensaje
         self.publisher.publish(mensaje)
+
+        # Sin espacios, como lo manda el STM32
+        self.publicar_crudo("rx", json.dumps(datos, separators=(",", ":")))
 
 
 def main():

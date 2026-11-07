@@ -38,6 +38,7 @@ STM32 ⇄ USB Serial ⇄ Raspberry Pi ⇄ ROS 2 ⇄ ROSBridge ⇄ Interfaz web.
 
 - `/datos_stm32`: datos que manda el STM32 (JSON).
 - `/comandos_stm32`: comandos que manda la interfaz al STM32 (JSON).
+- `/serial_crudo`: cada línea que entra o sale por el puerto serial, tal cual, con el motivo si se descartó.
 
 El control (PD de inclinación y PI de velocidad) corre en el STM32, que equilibra el robot por su cuenta aunque la Raspberry Pi o la interfaz se desconecten.
 
@@ -72,7 +73,7 @@ La Raspberry Pi genera un punto de acceso inalámbrico para acceder a la interfa
 
 La dirección de acceso es: `http://192.168.50.1:8000`
 
-Tiene tres páginas: Monitor, Control y Gráficas. El botón de PARO está siempre visible, pero depende del Wi-Fi, por lo que no sustituye a un paro de emergencia físico.
+Tiene cuatro páginas: Monitor, Control, Gráficas y Serial. En Serial se ve lo que pasa por el puerto serial en crudo, con las líneas descartadas en rojo. El botón de PARO está siempre visible, pero depende del Wi-Fi, por lo que no sustituye a un paro de emergencia físico.
 
 Abajo del menú está el botón para apagar la Raspberry Pi. Solo funciona con el robot en paro y pide un código (`CODIGO_APAGAR` en `web/src/App.jsx`).
 

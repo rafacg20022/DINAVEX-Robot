@@ -116,6 +116,28 @@ body {
   color: #888;
 }
 
+/* Consola de la página Serial */
+.consola-serial {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+}
+
+.linea-serial {
+  padding: 4px 0;
+  border-bottom: 1px solid #f0f0f0;
+  word-break: break-all;
+}
+
+.linea-serial .hora {
+  color: #888;
+  margin-right: 8px;
+}
+
+.linea-serial .error {
+  color: #ff4d4f;
+  margin-top: 2px;
+}
+
 /* Que no se seleccione el texto al mantener presionado */
 .boton-mantener {
   height: 56px;

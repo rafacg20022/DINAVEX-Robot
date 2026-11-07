@@ -1,8 +1,8 @@
-import { rosConectado, rosDesconectado, telemetriaRecibida } from "../store/actions/robot";
+import { rosConectado, rosDesconectado, telemetriaRecibida, lineaSerialRecibida } from "../store/actions/robot";
 
 /*
   Conexión con ROS 2 por rosbridge (puerto 9090).
-  Recibe /datos_stm32 y manda los comandos a /comandos_stm32.
+  Recibe /datos_stm32 y /serial_crudo, y manda los comandos a /comandos_stm32.
   Si se pierde la conexión se vuelve a conectar sola.
 
   CÓMO AGREGAR UN COMANDO NUEVO
@@ -43,6 +43,13 @@ export const abrirConexionRos = (dispatch) => {
         queue_length: 1,
       }));
 
+      // Sin throttle para no perder líneas
+      socket.send(JSON.stringify({
+        op: "subscribe",
+        topic: "/serial_crudo",
+        type: "std_msgs/msg/String",
+      }));
+
       socket.send(JSON.stringify({
         op: "advertise",
         topic: "/comandos_stm32",
@@ -59,6 +66,9 @@ export const abrirConexionRos = (dispatch) => {
         if (mensaje.op === "publish" && mensaje.topic === "/datos_stm32") {
           const datos = JSON.parse(mensaje.msg.data);
           dispatch(telemetriaRecibida(datos, Date.now()));
+        } else if (mensaje.op === "publish" && mensaje.topic === "/serial_crudo") {
+          const linea = JSON.parse(mensaje.msg.data);
+          dispatch(lineaSerialRecibida(linea, Date.now()));
         }
       } catch (error) {
         console.error("Error al procesar datos:", error);

@@ -28,6 +28,13 @@ class ReceptorSerial(Node):
             10
         )
 
+        # Tráfico crudo del puerto serial hacia la interfaz
+        self.publisher_crudo = self.create_publisher(
+            String,
+            '/serial_crudo',
+            10
+        )
+
         # Comandos de la interfaz hacia el STM32
         self.subscription = self.create_subscription(
             String,
@@ -277,6 +284,12 @@ class ReceptorSerial(Node):
                         "Buffer demasiado grande."
                     )
 
+                    self.publicar_crudo(
+                        "rx",
+                        self.buffer[:200].decode('utf-8', errors='replace'),
+                        "más de 8192 bytes sin salto de línea"
+                    )
+
                     self.buffer.clear()
                     return
 
@@ -320,7 +333,11 @@ class ReceptorSerial(Node):
                             throttle_duration_sec=2.0
                         )
 
+                        self.publicar_crudo("rx", texto, str(error))
+
                         continue
+
+                    self.publicar_crudo("rx", texto)
 
                     # PUBLICAR EN ROS 2
 
@@ -393,6 +410,9 @@ class ReceptorSerial(Node):
 
             return
 
+        # Comando sin el salto de línea
+        texto = linea.decode().strip()
+
         if self.puerto is None:
 
             self.get_logger().warning(
@@ -400,11 +420,15 @@ class ReceptorSerial(Node):
                 throttle_duration_sec=2.0
             )
 
+            self.publicar_crudo("tx", texto, "STM32 desconectado")
+
             return
 
         try:
 
             self.puerto.write(linea)
+
+            self.publicar_crudo("tx", texto)
 
             self.get_logger().debug(
                 f"TX [{self.ruta_puerto}]: {linea}"
@@ -417,13 +441,33 @@ class ReceptorSerial(Node):
                 throttle_duration_sec=2.0
             )
 
+            self.publicar_crudo("tx", texto, "el STM32 no está leyendo")
+
         except (serial.SerialException, OSError) as error:
 
             self.get_logger().error(
                 f"Error serial al enviar: {error}"
             )
 
+            self.publicar_crudo("tx", texto, str(error))
+
             self.desconectar()
+
+    # PUBLICAR LO QUE PASA POR EL PUERTO
+
+    def publicar_crudo(self, direccion, texto, error=None):
+
+        # Ejemplo: {"dir": "rx", "texto": "...", "error": "..."}
+        datos = {"dir": direccion, "texto": texto}
+
+        if error is not None:
+            datos["error"] = error
+
+        mensaje = String()
+
+        mensaje.data = json.dumps(datos)
+
+        self.publisher_crudo.publish(mensaje)
 
     # APAGAR LA RASPBERRY PI
 
