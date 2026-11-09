@@ -1,8 +1,9 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Layout, Menu, Tag, Button, Modal, Input, Typography, message } from "antd";
-import { DashboardOutlined, ControlOutlined, LineChartOutlined, UsbOutlined, StopOutlined, MenuOutlined, PoweroffOutlined } from "@ant-design/icons";
+import { DashboardOutlined, ControlOutlined, LineChartOutlined, UsbOutlined, StopOutlined, MenuOutlined, PoweroffOutlined, LogoutOutlined } from "@ant-design/icons";
 import { abrirConexionRos, enviarComando } from "./ros/conexionRos";
+import Login from "./Pages/Login/Login";
 import Monitor from "./Pages/Monitor/Monitor";
 import Control from "./Pages/Control/Control";
 import Graficas from "./Pages/Graficas/Graficas";
@@ -35,6 +36,7 @@ const CODIGO_APAGAR = "robot2026";
 
 class App extends Component {
   state = {
+    sesionIniciada: sessionStorage.getItem("sesion") === "si", // se borra al cerrar la pestaña
     paginaActual: "monitor",
     ahora: Date.now(),
     esCelular: false,   // pantalla chica
@@ -44,7 +46,7 @@ class App extends Component {
   };
 
   componentDidMount() {
-    this.cerrarConexionRos = abrirConexionRos(this.props.dispatch);
+    if (this.state.sesionIniciada) this.conectar();
 
     // Revisar cada 0.5 s si siguen llegando datos
     this.reloj = setInterval(() => this.setState({ ahora: Date.now() }), 500);
@@ -53,6 +55,28 @@ class App extends Component {
   componentWillUnmount() {
     if (this.cerrarConexionRos) this.cerrarConexionRos();
     clearInterval(this.reloj);
+  }
+
+  conectar() {
+    this.cerrarConexionRos = abrirConexionRos(this.props.dispatch);
+  }
+
+  entrar() {
+    sessionStorage.setItem("sesion", "si");
+    this.setState({ sesionIniciada: true });
+    this.conectar();
+  }
+
+  // Regresar al login y cortar la conexión con ROS 2
+  salir() {
+    sessionStorage.removeItem("sesion");
+
+    if (this.cerrarConexionRos) {
+      this.cerrarConexionRos();
+      this.cerrarConexionRos = null;
+    }
+
+    this.setState({ sesionIniciada: false, paginaActual: "monitor" });
   }
 
   cambiarPagina(e) {
@@ -98,7 +122,9 @@ class App extends Component {
 
   render() {
     const { conectadoRos, ultimaRecepcion, telemetria } = this.props;
-    const { paginaActual, ahora, esCelular, menuCerrado, modalApagar, codigoApagar } = this.state;
+    const { sesionIniciada, paginaActual, ahora, esCelular, menuCerrado, modalApagar, codigoApagar } = this.state;
+
+    if (!sesionIniciada) return <Login onEntrar={this.entrar.bind(this)} />;
 
     const pagina = PAGINAS.find((p) => p.key === paginaActual);
     const PaginaActual = pagina.componente;
@@ -131,7 +157,11 @@ class App extends Component {
             onClick={this.cambiarPagina.bind(this)}
           />
 
-          <div className="apagar-pi">
+          <div className="botones-menu">
+            <Button ghost block icon={<LogoutOutlined />} onClick={this.salir.bind(this)}>
+              Cerrar sesión
+            </Button>
+
             <Button
               danger
               ghost

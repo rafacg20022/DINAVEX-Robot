@@ -1,5 +1,7 @@
+/* Misma letra que antd también en el login */
 body {
   margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 .layout {
@@ -14,27 +16,67 @@ body {
   top: 0;
 }
 
-/* Botón de apagar hasta abajo del menú */
+/* Botones de cerrar sesión y apagar hasta abajo del menú */
 .menu-lateral .ant-layout-sider-children {
   display: flex;
   flex-direction: column;
 }
 
-.apagar-pi {
+.botones-menu {
   margin-top: auto;
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Botón deshabilitado sobre fondo oscuro */
-.apagar-pi .ant-btn:disabled {
+.botones-menu .ant-btn:disabled {
   color: rgba(255, 255, 255, 0.35) !important;
   border-color: rgba(255, 255, 255, 0.2) !important;
 }
 
-.apagar-pi .aviso {
+.botones-menu .aviso {
   color: #aab8d4;
   font-size: 12px;
-  margin-top: 6px;
+  text-align: center;
+}
+
+/* Pantalla de login con el fondo del logo */
+.login {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #001536;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.login .logo {
+  width: 180px;
+  border-radius: 12px;
+}
+
+.login .subtitulo {
+  color: #aab8d4;
+  font-size: 12px;
+  margin-top: 4px;
+  text-align: center;
+}
+
+.tarjeta-login {
+  width: 100%;
+  max-width: 360px;
+  margin-top: 16px;
+}
+
+.pie-login {
+  color: #aab8d4;
+  font-size: 12px;
+  margin-top: 24px;
   text-align: center;
 }
 
