@@ -75,7 +75,7 @@ La dirección de acceso es: `http://192.168.50.1:8000`
 
 Al abrirla pide usuario y contraseña (`USUARIO` y `CONTRASENA` en `web/src/Pages/Login/Login.jsx`). La sesión dura hasta cerrar la pestaña y se puede salir con el botón Cerrar sesión de abajo del menú.
 
-Tiene cuatro páginas: Monitor, Control, Gráficas y Serial. En Serial se ve lo que pasa por el puerto serial en crudo, con las líneas descartadas en rojo. El botón de PARO está siempre visible, pero depende del Wi-Fi, por lo que no sustituye a un paro de emergencia físico.
+Tiene cuatro páginas: Monitor, Control, Gráficas y Serial. En Serial se ve lo que pasa por el puerto serial en crudo, con las líneas descartadas en rojo, y se puede descargar en Excel o TXT. El botón de PARO está siempre visible, pero depende del Wi-Fi, por lo que no sustituye a un paro de emergencia físico.
 
 Abajo del menú está el botón para apagar la Raspberry Pi. Solo funciona con el robot en paro y pide un código (`CODIGO_APAGAR` en `web/src/App.jsx`).
 
