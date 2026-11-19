@@ -16,6 +16,14 @@ import json
 #   sudo systemctl stop robot-serial
 #   python3 simulador_robot.py
 
+# Ganancias de cada opción (las reales están en el STM32)
+OPCIONES = {
+    1: {"pd_kp": 32.0, "pd_kd": 1.6, "pi_kp": 0.5, "pi_ki": 0.05},   # óptima
+    2: {"pd_kp": 32.0, "pd_kd": 0.2, "pi_kp": 0.5, "pi_ki": 0.05},   # oscilatorio
+    3: {"pd_kp": 15.0, "pd_kd": 3.0, "pi_kp": 0.3, "pi_ki": 0.02},   # otro
+}
+
+
 class SimuladorRobot(Node):
 
     def __init__(self):
@@ -46,12 +54,7 @@ class SimuladorRobot(Node):
 
         # Estado del robot simulado
         self.estado = 1
-        self.ganancias = {
-            "pd_kp": 32.0,
-            "pd_kd": 1.6,
-            "pi_kp": 0.5,
-            "pi_ki": 0.05
-        }
+        self.ganancias = dict(OPCIONES[1])
 
         self.inclinacion = 0.0
         self.velocidad_angular = 20.0   # empieza con un empujón
@@ -60,6 +63,10 @@ class SimuladorRobot(Node):
 
         # 1 = adelante, -1 = atrás, 0 = detenido
         self.movimiento = 0
+
+        # 1 = derecha, -1 = izquierda, 0 = sin girar
+        self.giro = 0
+
         self.ultimo_movimiento = 0.0
 
         self.tiempo = 0.0
@@ -101,9 +108,8 @@ class SimuladorRobot(Node):
                 self.inclinacion = 0.0
                 self.velocidad_angular = 20.0
 
-            elif cmd == "ganancias":
-                for nombre in self.ganancias:
-                    self.ganancias[nombre] = round(float(comando[nombre]), 3)
+            elif cmd == "opcion":
+                self.ganancias = dict(OPCIONES[comando["valor"]])
 
             elif cmd == "adelante":
                 self.movimiento = 1
@@ -113,8 +119,17 @@ class SimuladorRobot(Node):
                 self.movimiento = -1
                 self.ultimo_movimiento = time.monotonic()
 
+            elif cmd == "izquierda":
+                self.giro = -1
+                self.ultimo_movimiento = time.monotonic()
+
+            elif cmd == "derecha":
+                self.giro = 1
+                self.ultimo_movimiento = time.monotonic()
+
             elif cmd == "detener":
                 self.movimiento = 0
+                self.giro = 0
 
         except (ValueError, KeyError, TypeError):
 
@@ -126,9 +141,10 @@ class SimuladorRobot(Node):
 
         self.tiempo += self.dt
 
-        # Detenerse si pasan 0.5 s sin adelante/atrás
+        # Detenerse si pasan 0.5 s sin moverse ni girar
         if time.monotonic() - self.ultimo_movimiento > 0.5:
             self.movimiento = 0
+            self.giro = 0
 
         if self.estado == 1:
 
@@ -164,6 +180,10 @@ class SimuladorRobot(Node):
 
             velocidad = self.velocidad_ruedas + 0.8 * self.velocidad_angular
 
+            # Al girar una rueda va más rápido que la otra
+            vel_izq = velocidad + 20.0 * self.giro
+            vel_der = velocidad - 20.0 * self.giro
+
             self.bateria = max(21.0, self.bateria - 0.002 * self.dt)
 
             ruido = 1.0
@@ -173,15 +193,15 @@ class SimuladorRobot(Node):
             self.inclinacion = 0.0
             self.velocidad_angular = 0.0
             self.velocidad_ruedas = 0.0
-            error = par = velocidad = 0.0
+            error = par = vel_izq = vel_der = 0.0
             ruido = 0.0
 
         # Mismos datos que manda el STM32
         datos = {
             "inclinacion": round(self.inclinacion + ruido * random.gauss(0, 0.05), 2),
             "error": round(error, 2),
-            "vel_izq": round(velocidad + ruido * random.gauss(0, 0.5), 1),
-            "vel_der": round(velocidad + ruido * random.gauss(0, 0.5), 1),
+            "vel_izq": round(vel_izq + ruido * random.gauss(0, 0.5), 1),
+            "vel_der": round(vel_der + ruido * random.gauss(0, 0.5), 1),
             "par_izq": round(par + ruido * random.gauss(0, 0.01), 3),
             "par_der": round(par + ruido * random.gauss(0, 0.01), 3),
             "pd_kp": self.ganancias["pd_kp"],

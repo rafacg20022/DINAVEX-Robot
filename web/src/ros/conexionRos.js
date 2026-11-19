@@ -8,7 +8,7 @@ import { rosConectado, rosDesconectado, telemetriaRecibida, lineaSerialRecibida 
   CÓMO AGREGAR UN COMANDO NUEVO
   1. Agregarlo primero en serial/protocolo.py.
   2. Mandarlo desde la página con enviarComando("calibrar")
-     o con datos: enviarComando("ganancias", { pd_kp: 32, ... })
+     o con datos: enviarComando("opcion", { valor: 1 })
 */
 
 const MAX_DELAY = 15000;

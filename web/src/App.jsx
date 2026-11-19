@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-import { Layout, Menu, Tag, Button, Modal, Input, Typography, message } from "antd";
+import { Layout, Menu, Tag, Button, Modal, Input, Popconfirm, Typography, message } from "antd";
 import { DashboardOutlined, ControlOutlined, LineChartOutlined, UsbOutlined, StopOutlined, MenuOutlined, PoweroffOutlined, LogoutOutlined } from "@ant-design/icons";
 import { abrirConexionRos, enviarComando } from "./ros/conexionRos";
 import Login from "./Pages/Login/Login";
@@ -36,7 +36,7 @@ const CODIGO_APAGAR = "robot2026";
 
 class App extends Component {
   state = {
-    sesionIniciada: sessionStorage.getItem("sesion") === "si", // se borra al cerrar la pestaña
+    rol: sessionStorage.getItem("rol"), // "master" o "invitado", se borra al cerrar la pestaña
     paginaActual: "monitor",
     ahora: Date.now(),
     esCelular: false,   // pantalla chica
@@ -46,7 +46,7 @@ class App extends Component {
   };
 
   componentDidMount() {
-    if (this.state.sesionIniciada) this.conectar();
+    if (this.state.rol) this.conectar();
 
     // Revisar cada 0.5 s si siguen llegando datos
     this.reloj = setInterval(() => this.setState({ ahora: Date.now() }), 500);
@@ -61,22 +61,22 @@ class App extends Component {
     this.cerrarConexionRos = abrirConexionRos(this.props.dispatch);
   }
 
-  entrar() {
-    sessionStorage.setItem("sesion", "si");
-    this.setState({ sesionIniciada: true });
+  entrar(rol) {
+    sessionStorage.setItem("rol", rol);
+    this.setState({ rol });
     this.conectar();
   }
 
   // Regresar al login y cortar la conexión con ROS 2
   salir() {
-    sessionStorage.removeItem("sesion");
+    sessionStorage.removeItem("rol");
 
     if (this.cerrarConexionRos) {
       this.cerrarConexionRos();
       this.cerrarConexionRos = null;
     }
 
-    this.setState({ sesionIniciada: false, paginaActual: "monitor" });
+    this.setState({ rol: null, paginaActual: "monitor" });
   }
 
   cambiarPagina(e) {
@@ -98,6 +98,47 @@ class App extends Component {
     } else {
       message.error("Sin conexión con ROS 2");
     }
+  }
+
+  arrancar() {
+    if (enviarComando("arranque")) {
+      message.success("Arranque enviado");
+    } else {
+      message.error("Sin conexión con ROS 2");
+    }
+  }
+
+  // ARRANQUE con el robot apagado y PARO en los demás casos
+  renderBotonRobot(robotApagado) {
+    const { conectadoRos } = this.props;
+
+    if (robotApagado) {
+      return (
+        <Popconfirm
+          title="¿Arrancar el robot?"
+          okText="Sí"
+          cancelText="No"
+          onConfirm={this.arrancar.bind(this)}
+          disabled={!conectadoRos}
+        >
+          <Button type="primary" icon={<PoweroffOutlined />} disabled={!conectadoRos}>
+            ARRANQUE
+          </Button>
+        </Popconfirm>
+      );
+    }
+
+    return (
+      <Button
+        type="primary"
+        danger
+        icon={<StopOutlined />}
+        disabled={!conectadoRos}
+        onClick={this.paro.bind(this)}
+      >
+        PARO
+      </Button>
+    );
   }
 
   // La Pi también revisa que el robot esté en paro
@@ -122,16 +163,21 @@ class App extends Component {
 
   render() {
     const { conectadoRos, ultimaRecepcion, telemetria } = this.props;
-    const { sesionIniciada, paginaActual, ahora, esCelular, menuCerrado, modalApagar, codigoApagar } = this.state;
+    const { rol, paginaActual, ahora, esCelular, menuCerrado, modalApagar, codigoApagar } = this.state;
 
-    if (!sesionIniciada) return <Login onEntrar={this.entrar.bind(this)} />;
+    if (!rol) return <Login onEntrar={this.entrar.bind(this)} />;
 
-    const pagina = PAGINAS.find((p) => p.key === paginaActual);
+    // El invitado no ve la página Control
+    const esInvitado = rol === "invitado";
+    const paginas = esInvitado ? PAGINAS.filter((p) => p.key !== "control") : PAGINAS;
+
+    const pagina = paginas.find((p) => p.key === paginaActual);
     const PaginaActual = pagina.componente;
     const conDatos = ultimaRecepcion !== null && ahora - ultimaRecepcion < TIEMPO_SIN_DATOS;
 
     // Sin datos del STM32 sí se deja apagar
     const robotEncendido = conDatos && telemetria.estado === 1;
+    const robotApagado = conDatos && telemetria.estado === 0;
 
     return (
       <Layout className="layout">
@@ -153,7 +199,7 @@ class App extends Component {
             theme="dark"
             mode="inline"
             selectedKeys={[paginaActual]}
-            items={PAGINAS.map(({ key, label, icon }) => ({ key, label, icon }))}
+            items={paginas.map(({ key, label, icon }) => ({ key, label, icon }))}
             onClick={this.cambiarPagina.bind(this)}
           />
 
@@ -162,17 +208,21 @@ class App extends Component {
               Cerrar sesión
             </Button>
 
-            <Button
-              danger
-              ghost
-              block
-              icon={<PoweroffOutlined />}
-              disabled={!conectadoRos || robotEncendido}
-              onClick={() => this.setState({ modalApagar: true })}
-            >
-              Apagar Raspberry
-            </Button>
-            {robotEncendido && <div className="aviso">Da PARO para poder apagarla</div>}
+            {!esInvitado && (
+              <>
+                <Button
+                  danger
+                  ghost
+                  block
+                  icon={<PoweroffOutlined />}
+                  disabled={!conectadoRos || robotEncendido}
+                  onClick={() => this.setState({ modalApagar: true })}
+                >
+                  Apagar Raspberry
+                </Button>
+                {robotEncendido && <div className="aviso">Da PARO para poder apagarla</div>}
+              </>
+            )}
           </div>
         </Sider>
 
@@ -220,19 +270,12 @@ class App extends Component {
               </Tag>
             </div>
 
-            <Button
-              type="primary"
-              danger
-              icon={<StopOutlined />}
-              disabled={!conectadoRos}
-              onClick={this.paro.bind(this)}
-            >
-              PARO
-            </Button>
+            {/* El invitado no manda comandos */}
+            {!esInvitado && this.renderBotonRobot(robotApagado)}
           </Header>
 
           <Content className="contenido">
-            <PaginaActual />
+            <PaginaActual esInvitado={esInvitado} />
           </Content>
 
           <Footer className="pie">

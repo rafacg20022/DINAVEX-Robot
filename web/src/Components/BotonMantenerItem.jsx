@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Button } from "antd";
 
-// Botón de Adelante / Atrás.
+// Botón de Adelante / Atrás / Izquierda / Derecha.
 // Manda el comando cada 200 ms mientras está presionado y "detener" al soltarlo.
 
 const INTERVALO = 200; // ms

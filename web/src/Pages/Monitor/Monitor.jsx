@@ -2,14 +2,14 @@ import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Row, Col, Card } from "antd";
 import { DatoItem, GraficaItem } from "../../Components/Items";
-import { DATOS_MONITOR } from "../../constants/telemetria";
+import { DATOS_MONITOR, GANANCIAS } from "../../constants/telemetria";
 
 // Página Monitor
 // Las tarjetas salen de constants/telemetria.js
 
 class Monitor extends Component {
   render() {
-    const { telemetria, historial } = this.props;
+    const { telemetria, historial, esInvitado } = this.props;
 
     let estado = null;
     let colorEstado;
@@ -31,6 +31,17 @@ class Monitor extends Component {
                 valor={telemetria ? telemetria[dato.campo] : null}
                 unidad={dato.unidad}
                 decimales={dato.decimales}
+              />
+            </Col>
+          ))}
+
+          {/* El invitado no tiene la página Control, aquí ve las ganancias */}
+          {esInvitado && GANANCIAS.map((g) => (
+            <Col xs={12} md={6} key={g.campo}>
+              <DatoItem
+                titulo={g.etiqueta + " " + g.controlador}
+                valor={telemetria ? telemetria[g.campo] : null}
+                decimales={3}
               />
             </Col>
           ))}

@@ -20,10 +20,18 @@ export const DATOS_MONITOR = [
   { campo: "bat_24v", etiqueta: "Batería 24 V", unidad: "V", decimales: 1 },
 ];
 
-// Ganancias de la página Control
+// Ganancias que manda el STM32 (Control, y Monitor del invitado)
 export const GANANCIAS = [
   { campo: "pd_kp", etiqueta: "Kp", controlador: "PD" },
   { campo: "pd_kd", etiqueta: "Kd", controlador: "PD" },
   { campo: "pi_kp", etiqueta: "Kp", controlador: "PI" },
   { campo: "pi_ki", etiqueta: "Ki", controlador: "PI" },
+];
+
+// Opciones de ganancias de la página Control
+// Las ganancias de cada opción están en el STM32
+export const OPCIONES_GANANCIAS = [
+  { value: 1, label: "Óptima" },
+  { value: 2, label: "Oscilatorio" },
+  { value: 3, label: "Otro" },
 ];

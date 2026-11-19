@@ -24,15 +24,17 @@
 # COMANDOS PARA EL STM32
 #
 # json:  {"cmd":"paro"}, {"cmd":"arranque"}, {"cmd":"adelante"},
-#        {"cmd":"atras"}, {"cmd":"detener"} y
-#        {"cmd":"ganancias","pd_kp":32.0,"pd_kd":1.6,"pi_kp":0.5,"pi_ki":0.05}
+#        {"cmd":"atras"}, {"cmd":"izquierda"}, {"cmd":"derecha"},
+#        {"cmd":"detener"} y {"cmd":"opcion","valor":1}
 #
-# texto: $PARO, $ARR, $ADE, $ATR, $DET y $GAN,32.000,1.600,0.500,0.050
+# texto: $PARO, $ARR, $ADE, $ATR, $IZQ, $DER, $DET y $OPC,1
 #
 # Los json van sin espacios y siempre en ese orden.
 #
-# adelante y atras se mandan cada 200 ms mientras se tiene presionado el
-# botón. Al soltarlo se manda detener.
+# adelante, atras, izquierda y derecha se mandan cada 200 ms mientras se
+# tiene presionado el botón. Al soltarlo se manda detener.
+#
+# opcion elige las ganancias: 1 óptima, 2 oscilatorio y 3 otro.
 #
 # apagar_pi no llega al STM32, con ese receptor_stm32.py apaga la Pi.
 #
@@ -40,10 +42,11 @@
 # 1. Equilibrar siempre, aunque se pierda la comunicación con la Pi.
 # 2. Apagar los motores solo con paro (la Pi nunca lo manda sola) y
 #    volver a operar con arranque.
-# 3. Con adelante/atras cambiar la velocidad de referencia y con detener
-#    regresarla a 0.
-# 4. Si pasan 500 ms sin adelante ni atras, detenerse.
-# 5. Aplicar las ganancias que lleguen y mandarlas en los datos.
+# 3. Con adelante/atras cambiar la velocidad de referencia, con
+#    izquierda/derecha girar y con detener regresar todo a 0.
+# 4. Si pasan 500 ms sin adelante, atras, izquierda ni derecha, detenerse.
+# 5. Con opcion cambiar a las ganancias de esa opción y mandarlas en los
+#    datos.
 # 6. Ignorar lo que no entienda.
 #
 # Para usar printf y sscanf con decimales en el STM32 hay que agregar
@@ -76,15 +79,18 @@ CAMPOS = [
     "bat_24v",
 ]
 
-GANANCIAS = ["pd_kp", "pd_kd", "pi_kp", "pi_ki"]
+# Opciones de ganancias: 1 óptima, 2 oscilatorio, 3 otro
+OPCIONES = [1, 2, 3]
 
 # Comandos y su versión en texto
 COMANDOS = {
-    "ganancias": "$GAN",
+    "opcion": "$OPC",
     "arranque": "$ARR",
     "paro": "$PARO",
     "adelante": "$ADE",
     "atras": "$ATR",
+    "izquierda": "$IZQ",
+    "derecha": "$DER",
     "detener": "$DET",
 }
 
@@ -156,48 +162,40 @@ def leer_datos(linea, formato):
 
 # ARMAR LOS COMANDOS PARA EL STM32
 
-def revisar_ganancias(ganancias):
+def revisar_opcion(datos):
 
-    revisadas = {}
+    if "valor" not in datos:
+        raise ValueError("falta valor")
 
-    for nombre in GANANCIAS:
+    valor = revisar_numero("valor", datos["valor"])
 
-        if nombre not in ganancias:
-            raise ValueError(f"falta {nombre}")
+    if valor not in OPCIONES:
+        raise ValueError(f"la opción debe ser 1, 2 o 3: {datos['valor']}")
 
-        valor = revisar_numero(nombre, ganancias[nombre])
-
-        if valor < 0:
-            raise ValueError(f"{nombre} no puede ser negativa")
-
-        revisadas[nombre] = valor
-
-    return revisadas
+    return int(valor)
 
 
-def armar_comando(comando, formato, ganancias=None):
+def armar_comando(comando, formato, datos=None):
 
     if comando not in COMANDOS:
         raise ValueError(f"comando desconocido: {comando}")
 
-    if comando == "ganancias":
-        ganancias = revisar_ganancias(ganancias or {})
+    if comando == "opcion":
+        opcion = revisar_opcion(datos or {})
 
     if formato == "texto":
 
         linea = COMANDOS[comando]
 
-        if comando == "ganancias":
-            for nombre in GANANCIAS:
-                linea += f",{ganancias[nombre]:.3f}"
+        if comando == "opcion":
+            linea += f",{opcion}"
 
     else:
 
         mensaje = {"cmd": comando}
 
-        if comando == "ganancias":
-            for nombre in GANANCIAS:
-                mensaje[nombre] = round(ganancias[nombre], 3)
+        if comando == "opcion":
+            mensaje["valor"] = opcion
 
         # Sin espacios para leerlo fácil en el STM32
         linea = json.dumps(mensaje, separators=(",", ":"))

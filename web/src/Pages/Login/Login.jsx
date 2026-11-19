@@ -5,14 +5,21 @@ import logo from "../../assets/logo.jpg";
 
 // Página de inicio de sesión
 
-// Usuario y contraseña de la interfaz
-const USUARIO = "DINAVEX";
-const CONTRASENA = "robot2026";
+// Usuarios de la interfaz
+// El invitado solo puede ver, no manda comandos
+const USUARIOS = [
+  { usuario: "DINAVEX", contrasena: "robot2026", rol: "master" },
+  { usuario: "Invitado", contrasena: "invitado", rol: "invitado" },
+];
 
 class Login extends Component {
   entrar(valores) {
-    if (valores.usuario === USUARIO && valores.contrasena === CONTRASENA) {
-      this.props.onEntrar();
+    const encontrado = USUARIOS.find(
+      (u) => u.usuario === valores.usuario && u.contrasena === valores.contrasena
+    );
+
+    if (encontrado) {
+      this.props.onEntrar(encontrado.rol);
     } else {
       message.error("Usuario o contraseña incorrectos");
     }
