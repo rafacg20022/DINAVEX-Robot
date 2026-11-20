@@ -9,30 +9,29 @@
 # DATOS DEL STM32 (20 veces por segundo)
 #
 # json:
-# {"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10}
+# {"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10,"modo":0}
 #
 # texto:
-# $TEL,-1.25,1.25,42.0,43.0,0.12,0.11,32.000,1.600,0.500,0.050,1,24.10
+# $TEL,-1.25,1.25,42.0,43.0,0.12,0.11,32.000,1.600,0.500,0.050,1,24.10,0
 #
 # inclinacion y error en grados (positivo hacia adelante), velocidades
 # en RPM, par en N·m y bat_24v en volts. estado: 1 encendido, 0 apagado.
 # pd_kp, pd_kd, pi_kp y pi_ki son las ganancias que tiene el STM32, con
-# 3 decimales.
+# 3 decimales. modo: 0 centro, 1 adelante, 2 atrás.
 #
 # Si falta un dato la línea se descarta. Si todavía no se mide, mandar 0.
 #
 # COMANDOS PARA EL STM32
 #
 # json:  {"cmd":"paro"}, {"cmd":"arranque"}, {"cmd":"adelante"},
-#        {"cmd":"atras"}, {"cmd":"izquierda"}, {"cmd":"derecha"},
-#        {"cmd":"detener"} y {"cmd":"opcion","valor":1}
+#        {"cmd":"atras"}, {"cmd":"centro"} y {"cmd":"opcion","valor":1}
 #
-# texto: $PARO, $ARR, $ADE, $ATR, $IZQ, $DER, $DET y $OPC,1
+# texto: $PARO, $ARR, $ADE, $ATR, $CEN y $OPC,1
 #
 # Los json van sin espacios y siempre en ese orden.
 #
-# adelante, atras, izquierda y derecha se mandan cada 200 ms mientras se
-# tiene presionado el botón. Al soltarlo se manda detener.
+# adelante, atras y centro cambian el modo. Mientras el modo es adelante
+# o atras, la interfaz lo vuelve a mandar cada segundo.
 #
 # opcion elige las ganancias: 1 óptima, 2 oscilatorio y 3 otro.
 #
@@ -41,10 +40,10 @@
 # Lo que tiene que hacer el STM32:
 # 1. Equilibrar siempre, aunque se pierda la comunicación con la Pi.
 # 2. Apagar los motores solo con paro (la Pi nunca lo manda sola) y
-#    volver a operar con arranque.
-# 3. Con adelante/atras cambiar la velocidad de referencia, con
-#    izquierda/derecha girar y con detener regresar todo a 0.
-# 4. Si pasan 500 ms sin adelante, atras, izquierda ni derecha, detenerse.
+#    volver a operar con arranque. Al arrancar empezar en centro.
+# 3. Con adelante, atras y centro cambiar el modo y mandarlo en los datos.
+# 4. En adelante o atras, si pasan 3 s sin recibir otra vez el comando,
+#    regresar a centro.
 # 5. Con opcion cambiar a las ganancias de esa opción y mandarlas en los
 #    datos.
 # 6. Ignorar lo que no entienda.
@@ -77,6 +76,7 @@ CAMPOS = [
     "pd_kp", "pd_kd", "pi_kp", "pi_ki",
     "estado",
     "bat_24v",
+    "modo",
 ]
 
 # Opciones de ganancias: 1 óptima, 2 oscilatorio, 3 otro
@@ -89,9 +89,7 @@ COMANDOS = {
     "paro": "$PARO",
     "adelante": "$ADE",
     "atras": "$ATR",
-    "izquierda": "$IZQ",
-    "derecha": "$DER",
-    "detener": "$DET",
+    "centro": "$CEN",
 }
 
 
@@ -156,6 +154,11 @@ def leer_datos(linea, formato):
         raise ValueError("estado debe ser 0 o 1")
 
     datos["estado"] = int(datos["estado"])
+
+    if datos["modo"] not in (0, 1, 2):
+        raise ValueError("modo debe ser 0, 1 o 2")
+
+    datos["modo"] = int(datos["modo"])
 
     return datos
 

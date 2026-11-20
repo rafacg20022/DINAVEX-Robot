@@ -61,13 +61,9 @@ class SimuladorRobot(Node):
         self.velocidad_ruedas = 0.0
         self.bateria = 24.8
 
-        # 1 = adelante, -1 = atrás, 0 = detenido
-        self.movimiento = 0
-
-        # 1 = derecha, -1 = izquierda, 0 = sin girar
-        self.giro = 0
-
-        self.ultimo_movimiento = 0.0
+        # 0 = centro, 1 = adelante, 2 = atrás
+        self.modo = 0
+        self.ultimo_modo = 0.0
 
         self.tiempo = 0.0
         self.siguiente_empujon = 8.0
@@ -102,6 +98,7 @@ class SimuladorRobot(Node):
 
             if cmd == "paro":
                 self.estado = 0
+                self.modo = 0
 
             elif cmd == "arranque" and self.estado == 0:
                 self.estado = 1
@@ -111,25 +108,16 @@ class SimuladorRobot(Node):
             elif cmd == "opcion":
                 self.ganancias = dict(OPCIONES[comando["valor"]])
 
-            elif cmd == "adelante":
-                self.movimiento = 1
-                self.ultimo_movimiento = time.monotonic()
+            elif cmd == "adelante" and self.estado == 1:
+                self.modo = 1
+                self.ultimo_modo = time.monotonic()
 
-            elif cmd == "atras":
-                self.movimiento = -1
-                self.ultimo_movimiento = time.monotonic()
+            elif cmd == "atras" and self.estado == 1:
+                self.modo = 2
+                self.ultimo_modo = time.monotonic()
 
-            elif cmd == "izquierda":
-                self.giro = -1
-                self.ultimo_movimiento = time.monotonic()
-
-            elif cmd == "derecha":
-                self.giro = 1
-                self.ultimo_movimiento = time.monotonic()
-
-            elif cmd == "detener":
-                self.movimiento = 0
-                self.giro = 0
+            elif cmd == "centro":
+                self.modo = 0
 
         except (ValueError, KeyError, TypeError):
 
@@ -141,14 +129,21 @@ class SimuladorRobot(Node):
 
         self.tiempo += self.dt
 
-        # Detenerse si pasan 0.5 s sin moverse ni girar
-        if time.monotonic() - self.ultimo_movimiento > 0.5:
-            self.movimiento = 0
-            self.giro = 0
+        # Regresar a centro si pasan 3 s sin repetir el modo
+        if self.modo != 0 and time.monotonic() - self.ultimo_modo > 3.0:
+            self.modo = 0
+
+        # 1 hacia adelante, -1 hacia atrás, 0 en centro
+        direccion = 0
+
+        if self.modo == 1:
+            direccion = 1
+        elif self.modo == 2:
+            direccion = -1
 
         if self.estado == 1:
 
-            setpoint = 2.0 * self.movimiento
+            setpoint = 2.0 * direccion
 
             # Oscilación amortiguada según Kp y Kd
             w = 0.55 * math.sqrt(self.ganancias["pd_kp"])
@@ -168,7 +163,7 @@ class SimuladorRobot(Node):
                 self.velocidad_angular += random.choice([-1, 1]) * random.uniform(8, 15)
                 self.siguiente_empujon += 8.0
 
-            self.velocidad_ruedas += (40.0 * self.movimiento - self.velocidad_ruedas) * 0.1
+            self.velocidad_ruedas += (40.0 * direccion - self.velocidad_ruedas) * 0.1
 
             error = setpoint - self.inclinacion
 
@@ -178,11 +173,7 @@ class SimuladorRobot(Node):
             )
             par = max(-2.0, min(2.0, par))
 
-            velocidad = self.velocidad_ruedas + 0.8 * self.velocidad_angular
-
-            # Al girar una rueda va más rápido que la otra
-            vel_izq = velocidad + 20.0 * self.giro
-            vel_der = velocidad - 20.0 * self.giro
+            vel_izq = vel_der = self.velocidad_ruedas + 0.8 * self.velocidad_angular
 
             self.bateria = max(21.0, self.bateria - 0.002 * self.dt)
 
@@ -209,7 +200,8 @@ class SimuladorRobot(Node):
             "pi_kp": self.ganancias["pi_kp"],
             "pi_ki": self.ganancias["pi_ki"],
             "estado": self.estado,
-            "bat_24v": round(self.bateria, 2)
+            "bat_24v": round(self.bateria, 2),
+            "modo": self.modo
         }
 
         # Crear mensaje ROS 2

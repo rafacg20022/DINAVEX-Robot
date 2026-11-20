@@ -180,10 +180,7 @@ body {
   margin-top: 2px;
 }
 
-/* Que no se seleccione el texto al mantener presionado */
-.boton-mantener {
+/* Botones de modo de la página Control */
+.boton-modo {
   height: 56px;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
 }

@@ -55,10 +55,12 @@ El control (PD de inclinación y PI de velocidad) corre en el STM32, que equilib
 Conexión serial a 115200 baudios con mensajes JSON terminados en salto de línea. El STM32 manda 20 veces por segundo:
 
 ```json
-{"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10}
+{"inclinacion":-1.25,"error":1.25,"vel_izq":42.0,"vel_der":43.0,"par_izq":0.12,"par_der":0.11,"pd_kp":32.000,"pd_kd":1.600,"pi_kp":0.500,"pi_ki":0.050,"estado":1,"bat_24v":24.10,"modo":0}
 ```
 
-Y recibe comandos como `{"cmd":"paro"}`, `{"cmd":"arranque"}`, `{"cmd":"izquierda"}` o `{"cmd":"opcion","valor":1}` (ganancias 1 óptima, 2 oscilatorio, 3 otro).
+Y recibe comandos como `{"cmd":"paro"}`, `{"cmd":"arranque"}`, `{"cmd":"adelante"}` o `{"cmd":"opcion","valor":1}` (ganancias 1 óptima, 2 oscilatorio, 3 otro).
+
+Los modos de movimiento son `adelante`, `atras` y `centro`. El STM32 manda el modo que tiene en `modo` (0 centro, 1 adelante, 2 atrás) y la interfaz ilumina ese botón.
 
 La lista completa de datos, comandos y reglas para el STM32 está en `serial/protocolo.py`.
 
@@ -75,7 +77,7 @@ La dirección de acceso es: `http://192.168.50.1:8000`
 
 Al abrirla pide usuario y contraseña (`USUARIOS` en `web/src/Pages/Login/Login.jsx`). Hay dos usuarios: `DINAVEX`, que puede hacer todo, e `Invitado`, que solo puede ver (no tiene la página Control, el botón de PARO/ARRANQUE ni el de apagar, y ve las ganancias en Monitor). La sesión dura hasta cerrar la pestaña y se puede salir con el botón Cerrar sesión de abajo del menú.
 
-Tiene cuatro páginas: Monitor, Control, Gráficas y Serial. En Serial se ve lo que pasa por el puerto serial en crudo, con las líneas descartadas en rojo, y se puede descargar en Excel o TXT. Arriba está el botón de PARO, que cambia a ARRANQUE cuando el robot está apagado. Depende del Wi-Fi, por lo que no sustituye a un paro de emergencia físico.
+Tiene cuatro páginas: Monitor, Control, Gráficas y Serial. En Serial se ve lo que pasa por el puerto serial en crudo, con las líneas descartadas en rojo, y se puede descargar en Excel o TXT. El botón MATLAB baja solo los datos del STM32 en columnas separadas por comas, con el tiempo `t` en segundos, y se abren con `T = readtable('archivo.txt'); plot(T.t, T.inclinacion)`. Arriba está el botón de PARO, que cambia a ARRANQUE cuando el robot está apagado. Depende del Wi-Fi, por lo que no sustituye a un paro de emergencia físico.
 
 Abajo del menú está el botón para apagar la Raspberry Pi. Solo funciona con el robot en paro y pide un código (`CODIGO_APAGAR` en `web/src/App.jsx`).
 

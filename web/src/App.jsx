@@ -34,6 +34,9 @@ const TIEMPO_SIN_DATOS = 1000;
 // Código para apagar la Raspberry
 const CODIGO_APAGAR = "robot2026";
 
+// Modos que se repiten para que el STM32 no regrese a centro
+const COMANDOS_MODO = { 1: "adelante", 2: "atras" };
+
 class App extends Component {
   state = {
     rol: sessionStorage.getItem("rol"), // "master" o "invitado", se borra al cerrar la pestaña
@@ -50,11 +53,30 @@ class App extends Component {
 
     // Revisar cada 0.5 s si siguen llegando datos
     this.reloj = setInterval(() => this.setState({ ahora: Date.now() }), 500);
+
+    // Repetir cada 1 s el modo adelante o atrás
+    this.timerModo = setInterval(this.repetirModo.bind(this), 1000);
   }
 
   componentWillUnmount() {
     if (this.cerrarConexionRos) this.cerrarConexionRos();
     clearInterval(this.reloj);
+    clearInterval(this.timerModo);
+  }
+
+  // Si deja de llegar, el STM32 regresa a centro a los 3 s
+  repetirModo() {
+    const { telemetria, ultimaRecepcion } = this.props;
+
+    // El invitado no manda comandos
+    if (this.state.rol !== "master") return;
+
+    const conDatos = ultimaRecepcion !== null && Date.now() - ultimaRecepcion < TIEMPO_SIN_DATOS;
+    if (!conDatos || telemetria.estado !== 1) return;
+
+    // En centro no se manda nada
+    const comando = COMANDOS_MODO[telemetria.modo];
+    if (comando) enviarComando(comando);
   }
 
   conectar() {

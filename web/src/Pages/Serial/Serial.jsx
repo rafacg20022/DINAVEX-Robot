@@ -1,14 +1,15 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Card, Button, Space, Tag, Empty } from "antd";
-import { PauseOutlined, CaretRightOutlined, ClearOutlined, FileExcelOutlined, FileTextOutlined } from "@ant-design/icons";
+import { PauseOutlined, CaretRightOutlined, ClearOutlined, FileExcelOutlined, FileTextOutlined, FunctionOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 import { limpiarSerial } from "../../store/actions/robot";
 import { MAX_LINEAS_SERIAL } from "../../store/reducers/robot";
+import { CAMPOS_STM32 } from "../../constants/telemetria";
 
 // Página Serial
 // Lo que pasa por el puerto serial, la línea más nueva arriba
-// Se puede descargar en Excel o TXT
+// Se puede descargar en Excel, TXT o TXT para MATLAB
 
 // Hora con milisegundos, por ejemplo 12:03:45.120
 const formatearHora = (ms) => {
@@ -16,9 +17,25 @@ const formatearHora = (ms) => {
 };
 
 // Nombre con fecha y hora, por ejemplo serial_2026-11-09_12-03-45
-const nombreArchivo = () => {
+const nombreArchivo = (prefijo) => {
   const ahora = new Date();
-  return "serial_" + ahora.toLocaleDateString("en-CA") + "_" + ahora.toTimeString().slice(0, 8).replace(/:/g, "-");
+  return prefijo + "_" + ahora.toLocaleDateString("en-CA") + "_" + ahora.toTimeString().slice(0, 8).replace(/:/g, "-");
+};
+
+// Descargar un TXT con un enlace temporal
+const bajarTxt = (renglones, nombre) => {
+  const enlace = document.createElement("a");
+  enlace.href = "data:text/plain;charset=utf-8," + encodeURIComponent(renglones.join("\r\n"));
+  enlace.download = nombre + ".txt";
+  enlace.click();
+};
+
+// Valores de una línea del STM32, en formato json o texto
+const leerValores = (texto) => {
+  if (texto.startsWith("$TEL")) return texto.split(",").slice(1).map(Number);
+
+  const datos = JSON.parse(texto);
+  return CAMPOS_STM32.map((campo) => datos[campo]);
 };
 
 class Serial extends Component {
@@ -60,7 +77,7 @@ class Serial extends Component {
 
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, "Serial");
-    XLSX.writeFile(libro, nombreArchivo() + ".xlsx");
+    XLSX.writeFile(libro, nombreArchivo("serial") + ".xlsx");
   }
 
   descargarTxt() {
@@ -72,11 +89,25 @@ class Serial extends Component {
       return renglon;
     });
 
-    // Descargar con un enlace temporal
-    const enlace = document.createElement("a");
-    enlace.href = "data:text/plain;charset=utf-8," + encodeURIComponent(renglones.join("\r\n"));
-    enlace.download = nombreArchivo() + ".txt";
-    enlace.click();
+    bajarTxt(renglones, nombreArchivo("serial"));
+  }
+
+  // Líneas que mandó el STM32 y que la Pi aceptó
+  datosStm32() {
+    return this.lineasVisibles().filter((linea) => linea.dir === "rx" && !linea.error);
+  }
+
+  // Columnas separadas por comas para abrirlo con readtable
+  descargarMatlab() {
+    const lineas = [...this.datosStm32()].reverse();
+    const inicio = lineas[0].recibidoEn;
+
+    const renglones = lineas.map((linea) => {
+      const t = ((linea.recibidoEn - inicio) / 1000).toFixed(3);
+      return [t, ...leerValores(linea.texto)].join(",");
+    });
+
+    bajarTxt([["t", ...CAMPOS_STM32].join(","), ...renglones], nombreArchivo("datos"));
   }
 
   render() {
@@ -109,6 +140,13 @@ class Serial extends Component {
               onClick={this.descargarTxt.bind(this)}
             >
               TXT
+            </Button>
+            <Button
+              icon={<FunctionOutlined />}
+              disabled={this.datosStm32().length === 0}
+              onClick={this.descargarMatlab.bind(this)}
+            >
+              MATLAB
             </Button>
           </Space>
         </Card>

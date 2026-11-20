@@ -1,12 +1,12 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Row, Col, Card, Radio, Button, Space, Typography, message } from "antd";
-import { ArrowUpOutlined, ArrowDownOutlined, RotateLeftOutlined, RotateRightOutlined, SendOutlined } from "@ant-design/icons";
-import { BotonMantenerItem, formatearValor } from "../../Components/Items";
+import { ArrowUpOutlined, ArrowDownOutlined, AimOutlined, SendOutlined } from "@ant-design/icons";
+import { formatearValor } from "../../Components/Items";
 import { GANANCIAS, OPCIONES_GANANCIAS } from "../../constants/telemetria";
 import { enviarComando } from "../../ros/conexionRos";
 
-// Página Control: ganancias y movimiento.
+// Página Control: ganancias y modo de movimiento.
 // Los botones de PARO y ARRANQUE están en App.jsx
 
 class Control extends Component {
@@ -22,8 +22,34 @@ class Control extends Component {
     }
   }
 
-  mover(comando) {
-    enviarComando(comando);
+  cambiarModo(valor, comando) {
+    // No mandar el modo que ya tiene el robot
+    if (this.props.telemetria.modo === valor) return;
+
+    if (!enviarComando(comando)) {
+      message.error("Sin conexión con ROS 2");
+    }
+  }
+
+  // Botón de un modo, iluminado si es el que tiene el STM32
+  renderModo(valor, comando, etiqueta, icono) {
+    const { telemetria, conectadoRos } = this.props;
+    const encendido = telemetria !== null && telemetria.estado === 1;
+    const activo = telemetria !== null && telemetria.modo === valor;
+
+    return (
+      <Button
+        className="boton-modo"
+        size="large"
+        block
+        type={activo ? "primary" : "default"}
+        icon={icono}
+        disabled={!conectadoRos || !encendido}
+        onClick={() => this.cambiarModo(valor, comando)}
+      >
+        {etiqueta}
+      </Button>
+    );
   }
 
   // Ganancia que tiene el STM32
@@ -41,9 +67,8 @@ class Control extends Component {
   }
 
   render() {
-    const { telemetria, conectadoRos } = this.props;
+    const { conectadoRos } = this.props;
     const { opcion } = this.state;
-    const encendido = telemetria !== null && telemetria.estado === 1;
 
     return (
       <Row gutter={[12, 12]}>
@@ -82,47 +107,12 @@ class Control extends Component {
         <Col xs={24} lg={10}>
           <Card size="small" title="Movimiento">
             <Space direction="vertical" style={{ width: "100%" }}>
-              <BotonMantenerItem
-                comando="adelante"
-                onComando={this.mover.bind(this)}
-                disabled={!conectadoRos || !encendido}
-                icon={<ArrowUpOutlined />}
-              >
-                Adelante
-              </BotonMantenerItem>
-              <Row gutter={8}>
-                <Col span={12}>
-                  <BotonMantenerItem
-                    comando="izquierda"
-                    onComando={this.mover.bind(this)}
-                    disabled={!conectadoRos || !encendido}
-                    icon={<RotateLeftOutlined />}
-                  >
-                    Izquierda
-                  </BotonMantenerItem>
-                </Col>
-                <Col span={12}>
-                  <BotonMantenerItem
-                    comando="derecha"
-                    onComando={this.mover.bind(this)}
-                    disabled={!conectadoRos || !encendido}
-                    icon={<RotateRightOutlined />}
-                  >
-                    Derecha
-                  </BotonMantenerItem>
-                </Col>
-              </Row>
-              <BotonMantenerItem
-                comando="atras"
-                onComando={this.mover.bind(this)}
-                disabled={!conectadoRos || !encendido}
-                icon={<ArrowDownOutlined />}
-              >
-                Atrás
-              </BotonMantenerItem>
+              {this.renderModo(1, "adelante", "Adelante", <ArrowUpOutlined />)}
+              {this.renderModo(0, "centro", "Centro", <AimOutlined />)}
+              {this.renderModo(2, "atras", "Atrás", <ArrowDownOutlined />)}
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Mantén presionado para moverte. Al soltar, el robot deja de avanzar
-                o girar pero sigue equilibrándose.
+                El botón iluminado es el modo que tiene el robot. Si se pierde la
+                conexión, el robot regresa a centro.
               </Typography.Text>
             </Space>
           </Card>

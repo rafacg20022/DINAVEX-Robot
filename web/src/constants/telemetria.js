@@ -1,14 +1,27 @@
 /*
-  Datos de la página Monitor.
+  Datos del STM32 y de la página Monitor.
   "campo" es el nombre del dato en el JSON del STM32.
 
   CÓMO AGREGAR UN DATO NUEVO
   1. Agregarlo primero en serial/protocolo.py.
-  2. Agregar una línea aquí, por ejemplo:
+  2. Agregarlo al final de CAMPOS_STM32.
+  3. Si se quiere ver en Monitor, agregar una línea en DATOS_MONITOR, por ejemplo:
        { campo: "temp_driver", etiqueta: "Temperatura driver", unidad: "°C", decimales: 1 },
-  3. Si se quiere graficar, agregarlo en src/Pages/Graficas/Graficas.jsx.
-  4. Correr npm run build
+  4. Si se quiere graficar, agregarlo en src/Pages/Graficas/Graficas.jsx.
+  5. Correr npm run build
 */
+
+// Datos que manda el STM32, en el mismo orden que serial/protocolo.py
+// Son las columnas del TXT para MATLAB
+export const CAMPOS_STM32 = [
+  "inclinacion", "error",
+  "vel_izq", "vel_der",
+  "par_izq", "par_der",
+  "pd_kp", "pd_kd", "pi_kp", "pi_ki",
+  "estado",
+  "bat_24v",
+  "modo",
+];
 
 export const DATOS_MONITOR = [
   { campo: "inclinacion", etiqueta: "Inclinación", unidad: "°", decimales: 1 },
