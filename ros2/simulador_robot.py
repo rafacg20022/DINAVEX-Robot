@@ -61,7 +61,7 @@ class SimuladorRobot(Node):
         self.velocidad_ruedas = 0.0
         self.bateria = 24.8
 
-        # 0 = centro, 1 = adelante, 2 = atrás
+        # 0 = centro, 1 = adelante, 2 = atrás, 3 = izquierda, 4 = derecha
         self.modo = 0
         self.ultimo_modo = 0.0
 
@@ -116,8 +116,19 @@ class SimuladorRobot(Node):
                 self.modo = 2
                 self.ultimo_modo = time.monotonic()
 
+            elif cmd == "izquierda" and self.estado == 1:
+                self.modo = 3
+                self.ultimo_modo = time.monotonic()
+
+            elif cmd == "derecha" and self.estado == 1:
+                self.modo = 4
+                self.ultimo_modo = time.monotonic()
+
             elif cmd == "centro":
                 self.modo = 0
+
+            elif cmd == "inicio":
+                self.get_logger().info("Interfaz iniciada")
 
         except (ValueError, KeyError, TypeError):
 
@@ -133,13 +144,21 @@ class SimuladorRobot(Node):
         if self.modo != 0 and time.monotonic() - self.ultimo_modo > 3.0:
             self.modo = 0
 
-        # 1 hacia adelante, -1 hacia atrás, 0 en centro
+        # 1 hacia adelante, -1 hacia atrás, 0 sin avanzar
         direccion = 0
 
         if self.modo == 1:
             direccion = 1
         elif self.modo == 2:
             direccion = -1
+
+        # 1 a la derecha, -1 a la izquierda, 0 sin girar
+        giro = 0
+
+        if self.modo == 3:
+            giro = -1
+        elif self.modo == 4:
+            giro = 1
 
         if self.estado == 1:
 
@@ -173,7 +192,11 @@ class SimuladorRobot(Node):
             )
             par = max(-2.0, min(2.0, par))
 
-            vel_izq = vel_der = self.velocidad_ruedas + 0.8 * self.velocidad_angular
+            velocidad = self.velocidad_ruedas + 0.8 * self.velocidad_angular
+
+            # Al girar una rueda va hacia adelante y la otra hacia atrás
+            vel_izq = velocidad + 20.0 * giro
+            vel_der = velocidad - 20.0 * giro
 
             self.bateria = max(21.0, self.bateria - 0.002 * self.dt)
 

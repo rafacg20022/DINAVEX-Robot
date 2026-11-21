@@ -35,7 +35,7 @@ const TIEMPO_SIN_DATOS = 1000;
 const CODIGO_APAGAR = "robot2026";
 
 // Modos que se repiten para que el STM32 no regrese a centro
-const COMANDOS_MODO = { 1: "adelante", 2: "atras" };
+const COMANDOS_MODO = { 1: "adelante", 2: "atras", 3: "izquierda", 4: "derecha" };
 
 class App extends Component {
   state = {
@@ -54,7 +54,7 @@ class App extends Component {
     // Revisar cada 0.5 s si siguen llegando datos
     this.reloj = setInterval(() => this.setState({ ahora: Date.now() }), 500);
 
-    // Repetir cada 1 s el modo adelante o atrás
+    // Repetir cada 1 s el modo si no es centro
     this.timerModo = setInterval(this.repetirModo.bind(this), 1000);
   }
 

@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { Row, Col, Card, Radio, Button, Space, Typography, message } from "antd";
-import { ArrowUpOutlined, ArrowDownOutlined, AimOutlined, SendOutlined } from "@ant-design/icons";
+import { ArrowUpOutlined, ArrowDownOutlined, RotateLeftOutlined, RotateRightOutlined, AimOutlined, SendOutlined } from "@ant-design/icons";
 import { formatearValor } from "../../Components/Items";
 import { GANANCIAS, OPCIONES_GANANCIAS } from "../../constants/telemetria";
 import { enviarComando } from "../../ros/conexionRos";
@@ -108,7 +108,11 @@ class Control extends Component {
           <Card size="small" title="Movimiento">
             <Space direction="vertical" style={{ width: "100%" }}>
               {this.renderModo(1, "adelante", "Adelante", <ArrowUpOutlined />)}
-              {this.renderModo(0, "centro", "Centro", <AimOutlined />)}
+              <Row gutter={8}>
+                <Col span={8}>{this.renderModo(3, "izquierda", "Izquierda", <RotateLeftOutlined />)}</Col>
+                <Col span={8}>{this.renderModo(0, "centro", "Centro", <AimOutlined />)}</Col>
+                <Col span={8}>{this.renderModo(4, "derecha", "Derecha", <RotateRightOutlined />)}</Col>
+              </Row>
               {this.renderModo(2, "atras", "Atrás", <ArrowDownOutlined />)}
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 El botón iluminado es el modo que tiene el robot. Si se pierde la

@@ -50,6 +50,11 @@ class ReceptorSerial(Node):
         # Formato de los mensajes: "json" o "texto"
         self.formato = "json"
 
+        # El STM32 ignora lo que llega durante su interrupción de 25 ms
+        # Cada comando se manda 3 veces, cada 5 ms
+        self.veces_comando = 3
+        self.lapso_comando = 0.005
+
         self.puerto = None
         self.ruta_puerto = None
         self.tipo_dispositivo = None
@@ -426,9 +431,14 @@ class ReceptorSerial(Node):
 
         try:
 
-            self.puerto.write(linea)
+            for vez in range(self.veces_comando):
 
-            self.publicar_crudo("tx", texto)
+                if vez > 0:
+                    time.sleep(self.lapso_comando)
+
+                self.puerto.write(linea)
+
+                self.publicar_crudo("tx", texto)
 
             self.get_logger().debug(
                 f"TX [{self.ruta_puerto}]: {linea}"

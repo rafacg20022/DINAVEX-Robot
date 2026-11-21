@@ -17,21 +17,29 @@
 # inclinacion y error en grados (positivo hacia adelante), velocidades
 # en RPM, par en N·m y bat_24v en volts. estado: 1 encendido, 0 apagado.
 # pd_kp, pd_kd, pi_kp y pi_ki son las ganancias que tiene el STM32, con
-# 3 decimales. modo: 0 centro, 1 adelante, 2 atrás.
+# 3 decimales. modo: 0 centro, 1 adelante, 2 atrás, 3 izquierda,
+# 4 derecha.
 #
 # Si falta un dato la línea se descarta. Si todavía no se mide, mandar 0.
 #
 # COMANDOS PARA EL STM32
 #
 # json:  {"cmd":"paro"}, {"cmd":"arranque"}, {"cmd":"adelante"},
-#        {"cmd":"atras"}, {"cmd":"centro"} y {"cmd":"opcion","valor":1}
+#        {"cmd":"atras"}, {"cmd":"izquierda"}, {"cmd":"derecha"},
+#        {"cmd":"centro"}, {"cmd":"inicio"} y {"cmd":"opcion","valor":1}
 #
-# texto: $PARO, $ARR, $ADE, $ATR, $CEN y $OPC,1
+# texto: $PARO, $ARR, $ADE, $ATR, $IZQ, $DER, $CEN, $INI y $OPC,1
 #
 # Los json van sin espacios y siempre en ese orden.
 #
-# adelante, atras y centro cambian el modo. Mientras el modo es adelante
-# o atras, la interfaz lo vuelve a mandar cada segundo.
+# Cada comando se manda 3 veces seguidas, cada 5 ms, por si una cae en la
+# interrupción de 25 ms del STM32. Puede llegar repetido.
+#
+# adelante, atras, izquierda, derecha y centro cambian el modo. Mientras
+# el modo no es centro, la interfaz lo vuelve a mandar cada segundo.
+#
+# inicio se manda cada vez que la interfaz se conecta (al abrirla o al
+# reconectarse).
 #
 # opcion elige las ganancias: 1 óptima, 2 oscilatorio y 3 otro.
 #
@@ -41,12 +49,15 @@
 # 1. Equilibrar siempre, aunque se pierda la comunicación con la Pi.
 # 2. Apagar los motores solo con paro (la Pi nunca lo manda sola) y
 #    volver a operar con arranque. Al arrancar empezar en centro.
-# 3. Con adelante, atras y centro cambiar el modo y mandarlo en los datos.
-# 4. En adelante o atras, si pasan 3 s sin recibir otra vez el comando,
-#    regresar a centro.
+# 3. Con adelante, atras, izquierda, derecha y centro cambiar el modo y
+#    mandarlo en los datos.
+# 4. En adelante, atras, izquierda o derecha, si pasan 3 s sin recibir
+#    otra vez el comando, regresar a centro.
 # 5. Con opcion cambiar a las ganancias de esa opción y mandarlas en los
 #    datos.
-# 6. Ignorar lo que no entienda.
+# 6. Con inicio saber que la interfaz se abrió.
+# 7. Si un comando llega repetido, hacer lo mismo otra vez.
+# 8. Ignorar lo que no entienda.
 #
 # Para usar printf y sscanf con decimales en el STM32 hay que agregar
 # -u _printf_float y -u _scanf_float en el linker.
@@ -89,7 +100,10 @@ COMANDOS = {
     "paro": "$PARO",
     "adelante": "$ADE",
     "atras": "$ATR",
+    "izquierda": "$IZQ",
+    "derecha": "$DER",
     "centro": "$CEN",
+    "inicio": "$INI",
 }
 
 
@@ -155,8 +169,8 @@ def leer_datos(linea, formato):
 
     datos["estado"] = int(datos["estado"])
 
-    if datos["modo"] not in (0, 1, 2):
-        raise ValueError("modo debe ser 0, 1 o 2")
+    if datos["modo"] not in (0, 1, 2, 3, 4):
+        raise ValueError("modo debe ser de 0 a 4")
 
     datos["modo"] = int(datos["modo"])
 
