@@ -18,9 +18,9 @@ import json
 
 # Ganancias de cada opción (las reales están en el STM32)
 OPCIONES = {
-    1: {"pd_kp": 32.0, "pd_kd": 1.6, "pi_kp": 0.5, "pi_ki": 0.05},   # óptima
-    2: {"pd_kp": 32.0, "pd_kd": 0.2, "pi_kp": 0.5, "pi_ki": 0.05},   # oscilatorio
-    3: {"pd_kp": 15.0, "pd_kd": 3.0, "pi_kp": 0.3, "pi_ki": 0.02},   # otro
+    1: {"pd_kp": -123.0, "pd_kd": -25.0, "pi_kp": -24.0, "pi_ki": -4.0},   # óptimo
+    2: {"pd_kp": 32.0, "pd_kd": 0.2, "pi_kp": 0.5, "pi_ki": 0.05},         # marginalmente estable
+    3: {"pd_kp": 15.0, "pd_kd": 3.0, "pi_kp": 0.3, "pi_ki": 0.02},         # inestable
 }
 
 
@@ -165,8 +165,12 @@ class SimuladorRobot(Node):
             setpoint = 2.0 * direccion
 
             # Oscilación amortiguada según Kp y Kd
-            w = 0.55 * math.sqrt(self.ganancias["pd_kp"])
-            z = min(max(0.075 * self.ganancias["pd_kd"], 0.02), 2.0)
+            # Las óptimas son negativas, aquí solo importa su tamaño
+            kp = abs(self.ganancias["pd_kp"])
+            kd = abs(self.ganancias["pd_kd"])
+
+            w = 0.55 * math.sqrt(kp)
+            z = min(max(0.075 * kd, 0.02), 2.0)
 
             aceleracion = (
                 -w * w * (self.inclinacion - setpoint)
@@ -186,10 +190,7 @@ class SimuladorRobot(Node):
 
             error = setpoint - self.inclinacion
 
-            par = 0.01 * (
-                self.ganancias["pd_kp"] * error
-                - self.ganancias["pd_kd"] * self.velocidad_angular
-            )
+            par = 0.01 * (kp * error - kd * self.velocidad_angular)
             par = max(-2.0, min(2.0, par))
 
             velocidad = self.velocidad_ruedas + 0.8 * self.velocidad_angular

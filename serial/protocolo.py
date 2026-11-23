@@ -41,7 +41,7 @@
 # inicio se manda cada vez que la interfaz se conecta (al abrirla o al
 # reconectarse).
 #
-# opcion elige las ganancias: 1 óptima, 2 oscilatorio y 3 otro.
+# opcion elige las ganancias: 1 óptimo, 2 marginalmente estable y 3 inestable.
 #
 # apagar_pi no llega al STM32, con ese receptor_stm32.py apaga la Pi.
 #
@@ -90,7 +90,7 @@ CAMPOS = [
     "modo",
 ]
 
-# Opciones de ganancias: 1 óptima, 2 oscilatorio, 3 otro
+# Opciones de ganancias: 1 óptimo, 2 marginalmente estable, 3 inestable
 OPCIONES = [1, 2, 3]
 
 # Comandos y su versión en texto

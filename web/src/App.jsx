@@ -3,6 +3,7 @@ import { connect } from "react-redux";
 import { Layout, Menu, Tag, Button, Modal, Input, Popconfirm, Typography, message } from "antd";
 import { DashboardOutlined, ControlOutlined, LineChartOutlined, UsbOutlined, StopOutlined, MenuOutlined, PoweroffOutlined, LogoutOutlined } from "@ant-design/icons";
 import { abrirConexionRos, enviarComando } from "./ros/conexionRos";
+import { tieneGananciasOptimas } from "./constants/telemetria";
 import Login from "./Pages/Login/Login";
 import Monitor from "./Pages/Monitor/Monitor";
 import Control from "./Pages/Control/Control";
@@ -73,6 +74,12 @@ class App extends Component {
 
     const conDatos = ultimaRecepcion !== null && Date.now() - ultimaRecepcion < TIEMPO_SIN_DATOS;
     if (!conDatos || telemetria.estado !== 1) return;
+
+    // Sin las ganancias óptimas no se mueve, regresarlo a centro
+    if (!tieneGananciasOptimas(telemetria)) {
+      if (telemetria.modo !== 0) enviarComando("centro");
+      return;
+    }
 
     // En centro no se manda nada
     const comando = COMANDOS_MODO[telemetria.modo];

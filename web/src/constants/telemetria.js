@@ -44,7 +44,19 @@ export const GANANCIAS = [
 // Opciones de ganancias de la página Control
 // Las ganancias de cada opción están en el STM32
 export const OPCIONES_GANANCIAS = [
-  { value: 1, label: "Óptima" },
-  { value: 2, label: "Oscilatorio" },
-  { value: 3, label: "Otro" },
+  { value: 1, label: "Óptimo" },
+  { value: 2, label: "Marginalmente estable" },
+  { value: 3, label: "Inestable" },
 ];
+
+// Ganancias óptimas, solo con estas se puede mover el robot
+export const GANANCIAS_OPTIMAS = { pd_kp: -123, pd_kd: -25, pi_kp: -24, pi_ki: -4 };
+
+// Llegan con decimales del STM32 (-123.000), por eso no se compara con ===
+export const tieneGananciasOptimas = (telemetria) => {
+  if (!telemetria) return false;
+
+  return Object.keys(GANANCIAS_OPTIMAS).every(
+    (campo) => Math.abs(telemetria[campo] - GANANCIAS_OPTIMAS[campo]) < 0.01
+  );
+};

@@ -3,7 +3,7 @@ import { connect } from "react-redux";
 import { Row, Col, Card, Radio, Button, Space, Typography, message } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined, RotateLeftOutlined, RotateRightOutlined, AimOutlined, SendOutlined } from "@ant-design/icons";
 import { formatearValor } from "../../Components/Items";
-import { GANANCIAS, OPCIONES_GANANCIAS } from "../../constants/telemetria";
+import { GANANCIAS, OPCIONES_GANANCIAS, tieneGananciasOptimas } from "../../constants/telemetria";
 import { enviarComando } from "../../ros/conexionRos";
 
 // Página Control: ganancias y modo de movimiento.
@@ -32,10 +32,12 @@ class Control extends Component {
   }
 
   // Botón de un modo, iluminado si es el que tiene el STM32
+  // Solo se puede mover con las ganancias óptimas
   renderModo(valor, comando, etiqueta, icono) {
     const { telemetria, conectadoRos } = this.props;
     const encendido = telemetria !== null && telemetria.estado === 1;
     const activo = telemetria !== null && telemetria.modo === valor;
+    const optimas = tieneGananciasOptimas(telemetria);
 
     return (
       <Button
@@ -44,7 +46,7 @@ class Control extends Component {
         block
         type={activo ? "primary" : "default"}
         icon={icono}
-        disabled={!conectadoRos || !encendido}
+        disabled={!conectadoRos || !encendido || !optimas}
         onClick={() => this.cambiarModo(valor, comando)}
       >
         {etiqueta}
@@ -67,7 +69,7 @@ class Control extends Component {
   }
 
   render() {
-    const { conectadoRos } = this.props;
+    const { conectadoRos, telemetria } = this.props;
     const { opcion } = this.state;
 
     return (
@@ -114,6 +116,11 @@ class Control extends Component {
                 <Col span={8}>{this.renderModo(4, "derecha", "Derecha", <RotateRightOutlined />)}</Col>
               </Row>
               {this.renderModo(2, "atras", "Atrás", <ArrowDownOutlined />)}
+              {telemetria !== null && !tieneGananciasOptimas(telemetria) && (
+                <Typography.Text type="warning">
+                  Para mover el robot hay que usar las ganancias óptimas.
+                </Typography.Text>
+              )}
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 El botón iluminado es el modo que tiene el robot. Si se pierde la
                 conexión, el robot regresa a centro.
