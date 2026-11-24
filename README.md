@@ -62,7 +62,7 @@ Y recibe comandos como `{"cmd":"paro"}`, `{"cmd":"arranque"}`, `{"cmd":"adelante
 
 Los modos de movimiento son `adelante`, `atras`, `izquierda`, `derecha` y `centro`. El STM32 manda el modo que tiene en `modo` (0 centro, 1 adelante, 2 atrás, 3 izquierda, 4 derecha) y la interfaz ilumina ese botón. Cada vez que la interfaz se conecta manda `{"cmd":"inicio"}`.
 
-El STM32 tiene una interrupción cada 25 ms y pierde lo que llegue en ese momento, por eso `receptor_stm32.py` manda cada comando 3 veces, cada 5 ms.
+El STM32 tiene una interrupción cada 25 ms y pierde lo que llegue en ese momento, por eso `receptor_stm32.py` manda cada comando 3 veces, cada 5 ms. `inicio` lo manda 20 veces, cada 5 ms (100 ms), porque con 3 no lo alcanzaba a recibir.
 
 La lista completa de datos, comandos y reglas para el STM32 está en `serial/protocolo.py`.
 

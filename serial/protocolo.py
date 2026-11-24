@@ -39,7 +39,7 @@
 # el modo no es centro, la interfaz lo vuelve a mandar cada segundo.
 #
 # inicio se manda cada vez que la interfaz se conecta (al abrirla o al
-# reconectarse).
+# reconectarse). Este se manda 20 veces, cada 5 ms (100 ms).
 #
 # opcion elige las ganancias: 1 óptimo, 2 marginalmente estable y 3 inestable.
 #

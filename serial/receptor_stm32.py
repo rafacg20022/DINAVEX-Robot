@@ -55,6 +55,9 @@ class ReceptorSerial(Node):
         self.veces_comando = 3
         self.lapso_comando = 0.005
 
+        # inicio se manda 20 veces, cada 5 ms (100 ms)
+        self.veces_inicio = 20
+
         self.puerto = None
         self.ruta_puerto = None
         self.tipo_dispositivo = None
@@ -429,9 +432,15 @@ class ReceptorSerial(Node):
 
             return
 
+        veces = self.veces_comando
+
+        # inicio se repite más para que el STM32 alcance a recibirlo
+        if comando.get("cmd") == "inicio":
+            veces = self.veces_inicio
+
         try:
 
-            for vez in range(self.veces_comando):
+            for vez in range(veces):
 
                 if vez > 0:
                     time.sleep(self.lapso_comando)
