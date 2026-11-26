@@ -55,8 +55,10 @@ class ReceptorSerial(Node):
         self.veces_comando = 3
         self.lapso_comando = 0.005
 
-        # inicio se manda 20 veces, cada 5 ms (100 ms)
-        self.veces_inicio = 20
+        # Al conectar con el STM32 se manda inicio 1000 veces,
+        # cada 5 ms (5 segundos), para que prenda lo antes posible
+        self.veces_inicio = 1000
+        self.inicio_restante = 0
 
         self.puerto = None
         self.ruta_puerto = None
@@ -80,6 +82,15 @@ class ReceptorSerial(Node):
             0.01,
             self.actualizar
         )
+
+        # Temporizador para mandar inicio: cada 5 ms
+        # Empieza detenido y se activa al conectar
+        self.timer_inicio = self.create_timer(
+            self.lapso_comando,
+            self.mandar_inicio
+        )
+
+        self.timer_inicio.cancel()
 
         self.get_logger().info(
             "DINAVEX - Receptor serial iniciado"
@@ -226,6 +237,14 @@ class ReceptorSerial(Node):
                 "================================"
             )
 
+            # Empezar a mandar inicio
+            self.inicio_restante = self.veces_inicio
+            self.timer_inicio.reset()
+
+            self.get_logger().info(
+                "Mandando inicio durante 5 segundos..."
+            )
+
         except (serial.SerialException, OSError) as error:
 
             self.get_logger().warning(
@@ -251,6 +270,10 @@ class ReceptorSerial(Node):
         self.tipo_dispositivo = None
         self.ultimo_dato = None
         self.estado_stm32 = None
+
+        # Dejar de mandar inicio
+        self.inicio_restante = 0
+        self.timer_inicio.cancel()
 
         self.buffer.clear()
 
@@ -432,15 +455,9 @@ class ReceptorSerial(Node):
 
             return
 
-        veces = self.veces_comando
-
-        # inicio se repite más para que el STM32 alcance a recibirlo
-        if comando.get("cmd") == "inicio":
-            veces = self.veces_inicio
-
         try:
 
-            for vez in range(veces):
+            for vez in range(self.veces_comando):
 
                 if vez > 0:
                     time.sleep(self.lapso_comando)
@@ -471,6 +488,56 @@ class ReceptorSerial(Node):
             self.publicar_crudo("tx", texto, str(error))
 
             self.desconectar()
+
+    # MANDAR INICIO AL CONECTAR
+
+    def mandar_inicio(self):
+
+        # Ya se mandaron todos o se desconectó
+        if self.puerto is None or self.inicio_restante <= 0:
+
+            self.timer_inicio.cancel()
+            return
+
+        linea = protocolo.armar_comando("inicio", self.formato)
+
+        texto = linea.decode().strip()
+
+        try:
+
+            self.puerto.write(linea)
+
+        except serial.SerialTimeoutException:
+
+            self.get_logger().warning(
+                "No se envió inicio: el STM32 no está leyendo"
+            )
+
+            self.publicar_crudo("tx", texto, "el STM32 no está leyendo")
+
+            # Se deja de mandar para no trabar la lectura
+            self.inicio_restante = 0
+            self.timer_inicio.cancel()
+
+            return
+
+        except (serial.SerialException, OSError) as error:
+
+            self.get_logger().error(
+                f"Error serial al enviar inicio: {error}"
+            )
+
+            self.publicar_crudo("tx", texto, str(error))
+
+            self.desconectar()
+
+            return
+
+        # Solo el primero se muestra en la página Serial
+        if self.inicio_restante == self.veces_inicio:
+            self.publicar_crudo("tx", texto)
+
+        self.inicio_restante -= 1
 
     # PUBLICAR LO QUE PASA POR EL PUERTO
 

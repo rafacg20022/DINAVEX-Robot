@@ -60,9 +60,11 @@ Conexión serial a 115200 baudios con mensajes JSON terminados en salto de líne
 
 Y recibe comandos como `{"cmd":"paro"}`, `{"cmd":"arranque"}`, `{"cmd":"adelante"}` o `{"cmd":"opcion","valor":1}` (ganancias 1 óptimo, 2 marginalmente estable, 3 inestable).
 
-Los modos de movimiento son `adelante`, `atras`, `izquierda`, `derecha` y `centro`. El STM32 manda el modo que tiene en `modo` (0 centro, 1 adelante, 2 atrás, 3 izquierda, 4 derecha) y la interfaz ilumina ese botón. Cada vez que la interfaz se conecta manda `{"cmd":"inicio"}`.
+Los modos de movimiento son `adelante`, `atras`, `izquierda`, `derecha` y `centro`. El STM32 manda el modo que tiene en `modo` (0 centro, 1 adelante, 2 atrás, 3 izquierda, 4 derecha) y la interfaz ilumina ese botón.
 
-El STM32 tiene una interrupción cada 25 ms y pierde lo que llegue en ese momento, por eso `receptor_stm32.py` manda cada comando 3 veces, cada 5 ms. `inicio` lo manda 20 veces, cada 5 ms (100 ms), porque con 3 no lo alcanzaba a recibir.
+El STM32 tiene una interrupción cada 25 ms y pierde lo que llegue en ese momento, por eso `receptor_stm32.py` manda cada comando 3 veces, cada 5 ms.
+
+Cada vez que `receptor_stm32.py` se conecta con el STM32 le manda `{"cmd":"inicio"}` 1000 veces, cada 5 ms (5 segundos), para que prenda lo antes posible. La interfaz ya no lo manda. En la página Serial solo aparece el primero.
 
 La lista completa de datos, comandos y reglas para el STM32 está en `serial/protocolo.py`.
 

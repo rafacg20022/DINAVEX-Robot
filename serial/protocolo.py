@@ -38,8 +38,8 @@
 # adelante, atras, izquierda, derecha y centro cambian el modo. Mientras
 # el modo no es centro, la interfaz lo vuelve a mandar cada segundo.
 #
-# inicio se manda cada vez que la interfaz se conecta (al abrirla o al
-# reconectarse). Este se manda 20 veces, cada 5 ms (100 ms).
+# inicio lo manda receptor_stm32.py cada vez que se conecta con el STM32,
+# 1000 veces, cada 5 ms (5 segundos). La interfaz no lo manda.
 #
 # opcion elige las ganancias: 1 óptimo, 2 marginalmente estable y 3 inestable.
 #
@@ -55,7 +55,7 @@
 #    otra vez el comando, regresar a centro.
 # 5. Con opcion cambiar a las ganancias de esa opción y mandarlas en los
 #    datos.
-# 6. Con inicio saber que la interfaz se abrió.
+# 6. Con inicio saber que la Pi ya está conectada.
 # 7. Si un comando llega repetido, hacer lo mismo otra vez.
 # 8. Ignorar lo que no entienda.
 #

@@ -56,10 +56,6 @@ export const abrirConexionRos = (dispatch) => {
         type: "std_msgs/msg/String",
       }));
 
-      // Avisar al STM32 que se abrió la interfaz
-      // Se espera 1 s para que ROS 2 termine de conectar el publicador
-      setTimeout(() => enviarComando("inicio"), 1000);
-
       dispatch(rosConectado());
     };
 
